@@ -1,0 +1,16 @@
+{
+  "id": "test-widow-pension", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट विधवा पेंशन योजना", "en": "Test Widow Pension Scheme"},
+  "aliases": ["टेस्ट विधवा पेंशन"], "state": "BR",
+  "department": {"hi": "फिक्स्चर विभाग", "en": "Fixture Department"}, "category": "pension",
+  "keywords": ["विधवा पेंशन", "widow pension", "vidhwa pension"],
+  "summary": {"hi": "टेस्ट फिक्स्चर: समीक्षा बाकी।", "en": "Test fixture awaiting review."},
+  "eligibility": [{"hi": "फिक्स्चर अपुष्ट पात्रता 55 साल", "en": "Fixture unconfirmed eligibility 55 years"}],
+  "benefits": [{"hi": "फिक्स्चर अपुष्ट लाभ 888 रुपये", "en": "Fixture unconfirmed benefit Rs 888"}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर अपुष्ट दस्तावेज़", "en": "Fixture unconfirmed document"}}],
+  "application_steps": [{"hi": "फिक्स्चर अपुष्ट चरण", "en": "Fixture unconfirmed step"}],
+  "where_to_apply": [{"hi": "फिक्स्चर गुप्त कार्यालय ज़ुलु", "en": "Fixture Secret Office Zulu"}],
+  "official_url": "https://fixture.example.gov.in/widow", "helpline": "000-111-0002",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "verification": {"status": "NEEDS_REVIEW", "notes": "TEST FIXTURE ONLY"}
+}

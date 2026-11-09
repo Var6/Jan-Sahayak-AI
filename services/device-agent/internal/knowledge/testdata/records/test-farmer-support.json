@@ -1,0 +1,18 @@
+{
+  "id": "test-farmer-support", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट किसान सहायता योजना", "en": "Test Farmer Support Scheme"},
+  "aliases": ["टेस्ट किसान सहायता", "test kisan sahayata"], "state": "",
+  "department": {"hi": "फिक्स्चर कृषि विभाग", "en": "Fixture Agriculture Department"}, "category": "farmer",
+  "keywords": ["किसान", "खेती", "farmer", "kisan", "किसान का पैसा", "किस्त"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर योजना किसानों को सहायता राशि देती है।", "en": "Test fixture scheme giving support money to farmers."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: खेती की ज़मीन वाले किसान", "en": "Fixture eligibility: farmers with land"}],
+  "benefits": [{"hi": "फिक्स्चर लाभ: साल में 3 किस्त", "en": "Fixture benefit: 3 instalments a year"}],
+  "questions": [{"id": "has_land", "ask": {"hi": "क्या आपके नाम पर खेती की ज़मीन है?", "en": "Is there farmland in your name?"}, "kind": "yes_no", "ineligible_if": ["no"]}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर ज़मीन दस्तावेज़", "en": "Fixture land document"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: पोर्टल पर पंजीकरण", "en": "Fixture step: register on the portal"}],
+  "where_to_apply": [{"hi": "फिक्स्चर कृषि कार्यालय चार्ली", "en": "Fixture Agriculture Office Charlie"}],
+  "official_url": "https://fixture.example.gov.in/farmer", "helpline": "000-111-0006",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

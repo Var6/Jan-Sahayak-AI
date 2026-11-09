@@ -1,0 +1,20 @@
+{
+  "id": "test-elderly-pension", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट वृद्धजन पेंशन योजना", "en": "Test Elderly Pension Scheme"},
+  "aliases": ["टेस्ट वृद्धजन पेंशन", "test elderly pension"],
+  "state": "BR", "department": {"hi": "फिक्स्चर विभाग", "en": "Fixture Department"},
+  "category": "pension",
+  "keywords": ["वृद्धावस्था पेंशन", "बुजुर्ग पेंशन", "old age pension", "vridha pension", "बुढ़ापा पेंशन"],
+  "summary": {"hi": "यह एक टेस्ट फिक्स्चर योजना है जो बुजुर्गों को हर महीने पेंशन देती है।", "en": "A test fixture scheme that pays a monthly pension to elderly people."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: उम्र 77 साल या उससे ज़्यादा", "en": "Fixture eligibility: age 77 or above"}],
+  "benefits": [{"hi": "फिक्स्चर लाभ: 999 रुपये प्रति माह", "en": "Fixture benefit: Rs 999 per month"}],
+  "questions": [{"id": "age_ok", "ask": {"hi": "क्या उनकी उम्र 77 साल या उससे ज़्यादा है?", "en": "Are they 77 years or older?"}, "kind": "yes_no", "ineligible_if": ["no"]}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर पहचान दस्तावेज़", "en": "Fixture identity document"}}, {"name": {"hi": "फिक्स्चर आयु प्रमाण", "en": "Fixture age proof"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: फॉर्म भरकर जमा करें", "en": "Fixture step: fill and submit the form"}],
+  "where_to_apply": [{"hi": "फिक्स्चर कार्यालय अल्फा", "en": "Fixture Office Alpha"}],
+  "official_url": "https://fixture.example.gov.in/elderly",
+  "helpline": "000-111-0001",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

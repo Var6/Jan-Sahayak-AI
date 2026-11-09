@@ -1,0 +1,1 @@
+{"id": "test-unknown-field", "version": 1, "kind": "scheme", "name": {"hi": "टेस्ट", "en": "Test"}, "mandatory_doc": [], "category": "pension", "summary": {"hi": "टेस्ट", "en": ""}, "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}], "verification": {"status": "UNVERIFIED"}}

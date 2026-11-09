@@ -1,0 +1,34 @@
+# dependencies / builds
+node_modules/
+dist/
+.next/
+build/
+bin/
+coverage/
+*.tsbuildinfo
+
+# local AI model weights (installed by scripts/models/install.sh, never committed)
+models/weights/
+*.gguf
+*.onnx
+*.bin
+!models/manifests/**
+
+# runtime data
+var/
+*.db
+*.db-wal
+*.db-shm
+*.log
+tmp/
+
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

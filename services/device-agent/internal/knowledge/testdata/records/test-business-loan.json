@@ -1,0 +1,17 @@
+{
+  "id": "test-business-loan", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट स्वरोजगार ऋण योजना", "en": "Test Self-Employment Loan Scheme"},
+  "aliases": ["टेस्ट व्यवसाय लोन"], "state": "BR",
+  "department": {"hi": "फिक्स्चर उद्योग विभाग", "en": "Fixture Industries Department"}, "category": "loan",
+  "keywords": ["व्यवसाय लोन", "स्वरोजगार", "business loan", "dukan ke liye loan", "धंधा"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर योजना अपना काम शुरू करने के लिए ऋण देती है।", "en": "Test fixture scheme giving loans to start a business."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: बेरोजगार युवा", "en": "Fixture eligibility: unemployed youth"}],
+  "benefits": [{"hi": "फिक्स्चर लाभ: कम ब्याज पर ऋण", "en": "Fixture benefit: low-interest loan"}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर व्यवसाय योजना", "en": "Fixture business plan"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: ऑनलाइन आवेदन", "en": "Fixture step: apply online"}],
+  "where_to_apply": [{"hi": "फिक्स्चर उद्योग केंद्र डेल्टा", "en": "Fixture Industries Centre Delta"}],
+  "official_url": "https://fixture.example.gov.in/business",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

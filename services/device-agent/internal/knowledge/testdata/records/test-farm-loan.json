@@ -1,0 +1,17 @@
+{
+  "id": "test-farm-loan", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट कृषि ऋण योजना", "en": "Test Farm Loan Scheme"},
+  "aliases": [], "state": "",
+  "department": {"hi": "फिक्स्चर कृषि विभाग", "en": "Fixture Agriculture Department"}, "category": "loan",
+  "keywords": ["कृषि लोन", "खेती के लिए लोन", "किसान लोन", "farm loan", "agriculture loan", "kisan loan"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर योजना खेती के काम के लिए ऋण देती है।", "en": "Test fixture scheme giving loans for farming."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: किसान", "en": "Fixture eligibility: farmers"}],
+  "benefits": [{"hi": "फिक्स्चर लाभ: खेती के लिए ऋण", "en": "Fixture benefit: farm loan"}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर ज़मीन दस्तावेज़", "en": "Fixture land document"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: बैंक में आवेदन", "en": "Fixture step: apply at the bank"}],
+  "where_to_apply": [{"hi": "फिक्स्चर बैंक इको", "en": "Fixture Bank Echo"}],
+  "official_url": "https://fixture.example.gov.in/farmloan",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

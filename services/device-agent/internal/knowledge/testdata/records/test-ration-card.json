@@ -1,0 +1,17 @@
+{
+  "id": "test-ration-card", "version": 1, "kind": "service",
+  "name": {"hi": "टेस्ट राशन कार्ड सेवा", "en": "Test Ration Card Service"},
+  "aliases": [], "state": "BR",
+  "department": {"hi": "फिक्स्चर खाद्य विभाग", "en": "Fixture Food Department"}, "category": "food_security",
+  "keywords": ["राशन कार्ड", "ration card", "राशन"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर सेवा राशन कार्ड बनवाने के बारे में है।", "en": "Test fixture service about getting a ration card."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: परिवार", "en": "Fixture eligibility: households"}],
+  "benefits": [{"hi": "फिक्स्चर लाभ: सस्ता अनाज", "en": "Fixture benefit: subsidised grain"}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर परिवार सूची", "en": "Fixture family list"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: आवेदन जमा करें", "en": "Fixture step: submit application"}],
+  "where_to_apply": [{"hi": "फिक्स्चर आपूर्ति कार्यालय गोल्फ", "en": "Fixture Supply Office Golf"}],
+  "official_url": "https://fixture.example.gov.in/ration",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

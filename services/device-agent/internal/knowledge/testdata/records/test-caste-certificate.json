@@ -1,0 +1,17 @@
+{
+  "id": "test-caste-certificate", "version": 1, "kind": "service",
+  "name": {"hi": "टेस्ट जाति प्रमाण पत्र सेवा", "en": "Test Caste Certificate Service"},
+  "aliases": ["टेस्ट जाति प्रमाण पत्र"], "state": "BR",
+  "department": {"hi": "फिक्स्चर विभाग", "en": "Fixture Department"}, "category": "certificate",
+  "keywords": ["जाति प्रमाण पत्र", "caste certificate", "jati praman patra", "जाति"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर सेवा जाति प्रमाण पत्र बनवाने की प्रक्रिया बताती है।", "en": "Test fixture service describing how to get a caste certificate."},
+  "eligibility": [{"hi": "फिक्स्चर पात्रता: बिहार का निवासी", "en": "Fixture eligibility: resident of Bihar"}],
+  "benefits": [],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर स्व-घोषणा पत्र", "en": "Fixture self-declaration"}}, {"name": {"hi": "फिक्स्चर वंशावली दस्तावेज़", "en": "Fixture family-lineage document"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: काउंटर पर आवेदन दें", "en": "Fixture step: apply at the counter"}],
+  "where_to_apply": [{"hi": "फिक्स्चर काउंटर ब्रावो", "en": "Fixture Counter Bravo"}],
+  "official_url": "https://fixture.example.gov.in/caste",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

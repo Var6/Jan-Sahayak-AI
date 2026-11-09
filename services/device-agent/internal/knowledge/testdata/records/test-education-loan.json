@@ -1,0 +1,16 @@
+{
+  "id": "test-education-loan", "version": 1, "kind": "scheme",
+  "name": {"hi": "टेस्ट शिक्षा ऋण योजना", "en": "Test Education Loan Scheme"},
+  "aliases": [], "state": "BR",
+  "department": {"hi": "फिक्स्चर शिक्षा विभाग", "en": "Fixture Education Department"}, "category": "education",
+  "keywords": ["शिक्षा लोन", "पढ़ाई के लिए लोन", "education loan", "student loan"],
+  "summary": {"hi": "टेस्ट फिक्स्चर: अभी असत्यापित।", "en": "Test fixture: not verified yet."},
+  "eligibility": [{"hi": "फिक्स्चर असत्यापित पात्रता", "en": "Fixture unverified eligibility"}],
+  "benefits": [{"hi": "फिक्स्चर असत्यापित लाभ 4 लाख", "en": "Fixture unverified benefit 4 lakh"}],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर असत्यापित दस्तावेज़", "en": "Fixture unverified document"}}],
+  "application_steps": [{"hi": "फिक्स्चर असत्यापित चरण", "en": "Fixture unverified step"}],
+  "where_to_apply": [{"hi": "फिक्स्चर असत्यापित कार्यालय फॉक्सट्रॉट", "en": "Fixture Unverified Office Foxtrot"}],
+  "official_url": "https://fixture.example.gov.in/education",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "verification": {"status": "UNVERIFIED", "notes": "TEST FIXTURE ONLY - machine imported"}
+}

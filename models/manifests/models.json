@@ -1,0 +1,97 @@
+{
+  "manifest_version": 1,
+  "updated": "2026-11-09",
+  "notes": "Install with scripts/models/install.sh <profile>. Weights go to models/weights/ (git-ignored). Every file is SHA-256 verified before it is moved into place.",
+  "profiles": {
+    "dev-mac": ["stt-indicconformer-hi", "vad-silero", "tts-supertonic3", "llm-gemma4-e2b", "llm-gemma4-e2b-mtp", "stt-whisper-turbo"],
+    "pi5": ["stt-indicconformer-hi", "vad-silero", "tts-supertonic3", "llm-gemma4-e2b", "llm-gemma4-e2b-mtp"]
+  },
+  "models": [
+    {
+      "id": "stt-indicconformer-hi",
+      "component": "stt",
+      "runtime": "sherpa-onnx >= 2.0.1 (offline CTC)",
+      "description": "AI4Bharat IndicConformer Hindi (hybrid CTC/RNNT large, CTC head), int8 ONNX export",
+      "licence": "MIT (upstream AI4Bharat); conversion repo labelled Apache-2.0 — keep AI4Bharat attribution",
+      "status": "DOWNLOADED",
+      "files": [
+        {"path": "stt/indicconformer-hi/model.int8.onnx", "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi/model.int8.onnx", "bytes": 197595593, "sha256": "915c71e04dd7e5378a4057fdebb252b3a587188e4e99db6d7ce0909ad5ad05fa"},
+        {"path": "stt/indicconformer-hi/tokens.txt", "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/tokens.txt", "bytes": 67605, "sha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"}
+      ],
+      "risk": "Community export (repo created 2026-07-27, ~0 downloads). SHA pinned. No WER is published for this exact 120M checkpoint (the often-quoted 13.2 Vaani WER is for the 600M multilingual model). TODO: reproduce the export ourselves from ai4bharat/indicconformer_stt_hi_hybrid_ctc_rnnt_large and measure WER on consented real speech."
+    },
+    {
+      "id": "vad-silero",
+      "component": "vad",
+      "runtime": "sherpa-onnx",
+      "description": "Silero VAD v5 ONNX",
+      "licence": "MIT",
+      "status": "DOWNLOADED",
+      "files": [
+        {"path": "vad/silero_vad.onnx", "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx", "bytes": 643854, "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"}
+      ]
+    },
+    {
+      "id": "tts-supertonic3",
+      "component": "tts",
+      "runtime": "sherpa-onnx >= 2.0.1 (supertonic)",
+      "description": "Supertone Supertonic-3 int8, 31 languages incl. Hindi, 44.1 kHz, 10 preset voices",
+      "licence": "Weights: BigScience OpenRAIL-M (use restrictions: disclose machine-generated speech; no automated legal-rights decisions; no medical advice; no law enforcement / justice administration; pass restrictions on). Code: MIT.",
+      "status": "DOWNLOADED",
+      "archive": {"url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2", "bytes": 128774318, "sha256": "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427", "extract_to": "tts/"},
+      "files": [
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vector_estimator.int8.onnx"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/text_encoder.int8.onnx"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vocoder.int8.onnx"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/duration_predictor.int8.onnx"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/tts.json"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/unicode_indexer.bin"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/voice.bin"}
+      ]
+    },
+    {
+      "id": "llm-gemma4-e2b",
+      "component": "llm",
+      "runtime": "llama.cpp llama-server >= 0.9.0",
+      "description": "Google Gemma 4 E2B-it, Q4_0 GGUF (official ggml-org quantisation)",
+      "licence": "Apache-2.0",
+      "status": "DOWNLOADED",
+      "files": [
+        {"path": "llm/gemma-4-E2B-it-Q4_0.gguf", "url": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf", "bytes": 2841481184, "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52"}
+      ]
+    },
+    {
+      "id": "llm-gemma4-e2b-mtp",
+      "component": "llm",
+      "runtime": "llama.cpp llama-server >= 0.9.0 (--spec-type draft-mtp)",
+      "description": "Gemma 4 E2B multi-token-prediction draft head for speculative decoding",
+      "licence": "Apache-2.0",
+      "status": "DOWNLOADED",
+      "files": [
+        {"path": "llm/mtp-gemma-4-E2B-it-Q4_0.gguf", "url": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/mtp-gemma-4-E2B-it-Q4_0.gguf", "bytes": 59235872, "sha256": "718d3a44057924d5840c65a0aeedf7929366adeeda92a2006955ccabaf645ef4"}
+      ]
+    },
+    {
+      "id": "stt-whisper-turbo",
+      "component": "stt",
+      "runtime": "whisper.cpp whisper-server >= 1.9.5",
+      "description": "OpenAI Whisper large-v3-turbo q5_0 (dev-only second opinion; too slow for Pi CPU)",
+      "licence": "MIT",
+      "status": "TESTED",
+      "files": [
+        {"path": "stt/ggml-large-v3-turbo-q5_0.bin", "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin", "bytes": 574041195, "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2"}
+      ]
+    },
+    {
+      "id": "stt-whisper-small",
+      "component": "stt",
+      "runtime": "whisper.cpp",
+      "description": "Whisper small q5_1 (benchmark baseline only — poor on Bihar names)",
+      "licence": "MIT",
+      "status": "TESTED",
+      "files": [
+        {"path": "stt/ggml-small-q5_1.bin", "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin", "bytes": 190085487, "sha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"}
+      ]
+    }
+  ]
+}

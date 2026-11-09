@@ -1,0 +1,16 @@
+{
+  "id": "test-income-certificate", "version": 1, "kind": "service",
+  "name": {"hi": "टेस्ट आय प्रमाण पत्र सेवा", "en": "Test Income Certificate Service"},
+  "aliases": [], "state": "BR",
+  "department": {"hi": "फिक्स्चर विभाग", "en": "Fixture Department"}, "category": "certificate",
+  "keywords": ["आय प्रमाण पत्र", "income certificate", "आमदनी"],
+  "summary": {"hi": "यह टेस्ट फिक्स्चर सेवा आय प्रमाण पत्र के बारे में है।", "en": "Test fixture service about income certificates."},
+  "eligibility": [], "benefits": [],
+  "mandatory_docs": [{"name": {"hi": "फिक्स्चर आय घोषणा", "en": "Fixture income declaration"}}],
+  "application_steps": [{"hi": "फिक्स्चर चरण: आवेदन करें", "en": "Fixture step: apply"}],
+  "where_to_apply": [{"hi": "फिक्स्चर काउंटर ब्रावो", "en": "Fixture Counter Bravo"}],
+  "official_url": "https://fixture.example.gov.in/income",
+  "sources": [{"url": "https://fixture.example.gov.in/source", "title": "TEST FIXTURE SOURCE - not a real page", "accessed_on": "2026-10-01"}],
+  "last_verified": "2026-10-01",
+  "verification": {"status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31", "notes": "TEST FIXTURE ONLY - not a real scheme"}
+}

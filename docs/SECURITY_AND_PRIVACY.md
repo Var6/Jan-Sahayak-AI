@@ -1,0 +1,84 @@
+# Security and Privacy
+
+Status: design + implemented controls as of 2026-11-09. Items marked
+**[legal review]** need advice from a qualified lawyer before pilot.
+
+## 1. Data minimisation (what we do not collect)
+
+* No recording of visitors. Microphone opens only after a session is started
+  by the physical button **and** the agent has put the session into
+  `LISTENING`; the browser releases the mic after each utterance.
+* Camera opens only after explicit per-session consent for document help
+  (consent never carries over to the next session).
+* No face recognition, no biometrics, no continuous sensing.
+* The kiosk never asks for OTPs, passwords, PINs, bank credentials or full
+  Aadhaar numbers. If a citizen starts saying them, the kiosk tells them not
+  to share such details here and does not echo or store them.
+* Raw audio is processed in memory and never written to disk. Transcripts
+  and conversation state exist only in RAM for the session.
+* Analytics (outbox) contain only: random session id, device id, timestamps,
+  language, intent/category, scheme id, resolution, input source,
+  whether the LLM was used. No free text.
+* No document images stored by default (Phase 11: OCR in memory, citizen
+  confirms extracted fields, nothing persisted without consent).
+
+## 2. Device security
+
+| Control | Implementation |
+|---|---|
+| Local API exposure | Bound to 127.0.0.1 only; Host-header allow-list (DNS-rebinding); `http.CrossOriginProtection` + custom header on mutations (CSRF); body limits (16 KB JSON, 1 MB audio). |
+| Mic/camera gating | Enforced server-side by `session.RequireListening` / `RequireCameraConsent`; UI cannot bypass. |
+| Device identity | Ed25519 key generated on device at first boot, file mode 0600, never leaves the device; only the public key is registered centrally. |
+| Sync integrity | Signed requests (timestamp + nonce), signed per-event acknowledgements, pinned server keys with key ids for rotation. |
+| Process isolation | AI runtimes in separate processes; systemd hardening (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`, `ReadWritePaths=/var/lib/jan-sahayak`, `MemoryMax`). |
+| LLM permissions | None. No tools, shell, filesystem, database or network. Receives only engine-built prompts; output validated. |
+| Updates | Signed release bundles only, with rollback (Phase 12–13). Unverified updates are never installed. |
+| Model supply chain | Every model file SHA-256-verified before install (`scripts/models/install.sh`). |
+| Encryption at rest | Pi: LUKS full-disk encryption of the data partition with key sealed to device **[to evaluate: Pi 5 has no TPM; options are a passphrase at provisioning or an external secure element]**. The device holds no personal data in v1, which limits the impact. |
+| Kiosk lockdown | Chromium `--kiosk --incognito`, no URL bar, no downloads, keyboard shortcuts disabled, auto-restart. |
+
+## 3. Central security
+
+* Admin authentication: argon2id password hashes; server-side sessions
+  (random 32-byte token, stored hashed; `HttpOnly; Secure; SameSite=Strict`).
+* RBAC roles: viewer, device_admin, scheme_editor, scheme_reviewer, auditor,
+  admin. A reviewer cannot verify their own edit.
+* Audit log is append-only (database trigger blocks UPDATE/DELETE).
+* Device revocation is a single status change; revoked devices cannot sync.
+* TLS for all device ↔ server traffic (terminated at the server or a reverse
+  proxy) in addition to the application-level signatures.
+
+## 4. DPDP Act 2023 and Rules — design alignment **[legal review]**
+
+| Principle | How the design aligns |
+|---|---|
+| Purpose limitation & minimisation | Anonymous analytics only by default; no personal data collected in v1. |
+| Notice & consent | On-screen privacy notice at each session start (Hindi/English); explicit consent screens before any optional personal data or camera use. |
+| Storage limitation | RAM-only transcripts/audio; outbox retention; documented retention table (`OFFLINE_SYNC.md`). |
+| Security safeguards | Section 2 & 3 controls; breach-notification runbook TBD. |
+| Rights (access, correction, erasure, grievance) | Needed only when consented personal data is introduced; design a separate encrypted `citizen_assistance` schema with per-record consent and deletion. |
+| Children's data | Kiosk does not knowingly collect children's data; consent flows would need verifiable parental consent **[legal review]**. |
+
+Other legal items **[legal review]**:
+
+* Representation: the kiosk must not appear to be an official government
+  service. It introduces itself as a computer assistant from Janman People's
+  Foundation (subject to Janman approval of wording) and links only to
+  official channels. Use of any government logos requires authorisation.
+* Re-use of government web content: attribution required; several central
+  portals require email permission (see `KNOWLEDGE_SOURCES.md`); myScheme
+  automated access needs written NeGD permission.
+* Model licences: Supertonic-3 OpenRAIL-M use restrictions must be passed on;
+  Piper "rohan" voice provenance unresolved (not used).
+
+## 5. Threats considered
+
+| Threat | Mitigation |
+|---|---|
+| Someone at the kiosk tries to make it chat/act outside scope | Topic guard, deterministic flows, validator; LLM has no capabilities. |
+| Prompt injection via spoken/typed text or a scanned document | Inputs treated as data; injection patterns redirected; validator blocks invented facts. |
+| Malicious website on the kiosk browser reaching the agent | Loopback bind + Host check + CSRF protection; kiosk browser locked to the agent origin. |
+| Stolen device | No personal data stored; device key revocable centrally; disk encryption planned. |
+| Forged or replayed sync traffic | Ed25519 signatures, timestamp window, nonce store. |
+| Server lies / MITM ack | Device only trusts acks signed by pinned server keys and matching its own hashes. |
+| Fake knowledge bundle | Bundles signed centrally; device verifies before import (Phase 8–9). |
