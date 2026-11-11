@@ -39,8 +39,8 @@ else
   "$VERIFY" "$REL"
 fi
 
-echo "==> packages (cage compositor, chromium, curl)"
-apt-get install -y --no-install-recommends cage chromium curl
+echo "==> packages (cage compositor, chromium, curl, tesseract OCR with Hindi + English)"
+apt-get install -y --no-install-recommends cage chromium curl tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin
 
 echo "==> users"
 id jansahayak >/dev/null 2>&1 || useradd --system --home /var/lib/jan-sahayak --shell /usr/sbin/nologin jansahayak

@@ -1,0 +1,41 @@
+// Renders lines of text (one per stdin line; a leading '#' = bold) to a
+// JPEG/PNG with CoreText (proper Devanagari shaping), no AppKit.
+// Usage: render out.jpg width fontsize < lines.txt
+import CoreGraphics
+import CoreText
+import Foundation
+import ImageIO
+import UniformTypeIdentifiers
+
+let args = CommandLine.arguments
+let out = args[1]
+let width = Int(args[2]) ?? 1000
+let fontSize = CGFloat(Double(args[3]) ?? 34)
+var lines: [String] = []
+while let l = readLine() { lines.append(l) }
+let lineH = fontSize * 1.9
+let height = Int(CGFloat(lines.count) * lineH + fontSize * 2)
+let cs = CGColorSpaceCreateDeviceGray()
+guard let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+  space: cs, bitmapInfo: CGImageAlphaInfo.none.rawValue) else { print("ctx"); exit(1) }
+ctx.setFillColor(gray: 0.97, alpha: 1)
+ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+let regular = CTFontCreateWithName("Helvetica" as CFString, fontSize, nil)
+let bold = CTFontCreateWithName("Helvetica-Bold" as CFString, fontSize * 1.15, nil)
+let black = CGColor(gray: 0.08, alpha: 1)
+for (i, l) in lines.enumerated() {
+  var text = l
+  var f = regular
+  if text.hasPrefix("#") { text = String(text.dropFirst()); f = bold }
+  let attrs: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String): f,
+    NSAttributedString.Key(kCTForegroundColorAttributeName as String): black]
+  let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attrs))
+  let y = CGFloat(height) - fontSize * 1.6 - CGFloat(i) * lineH
+  ctx.textPosition = CGPoint(x: fontSize, y: y)
+  CTLineDraw(line, ctx)
+}
+guard let img = ctx.makeImage() else { print("img"); exit(1) }
+let type = out.hasSuffix(".png") ? UTType.png.identifier : UTType.jpeg.identifier
+guard let dst = CGImageDestinationCreateWithURL(URL(fileURLWithPath: out) as CFURL, type as CFString, 1, nil) else { print("dst"); exit(1) }
+CGImageDestinationAddImage(dst, img, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+if !CGImageDestinationFinalize(dst) { print("finalize"); exit(1) }

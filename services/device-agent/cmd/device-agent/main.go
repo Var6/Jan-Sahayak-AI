@@ -152,6 +152,7 @@ type agent struct {
 	ks      *knowledge.Store
 	engine  *dialogue.Conversation
 	ob      *outbox.Outbox
+	conn    connectivity // heartbeat + knowledge-bundle sync (connectivity.go)
 
 	// cancelBase cancels every in-flight HTTP request's context at
 	// shutdown (http.Server.BaseContext).
@@ -233,7 +234,10 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (*agent, er
 		} else {
 			rep, err = ks.LoadPath(ctx, p, "", nil)
 		}
-		if err != nil {
+		if errors.Is(err, knowledge.ErrBundleRollback) {
+			// Normal after a bundle sync: the device holds a newer bundle.
+			log.Info("configured knowledge bundle is older than the loaded one; keeping the newer", "path", p, "err", err)
+		} else if err != nil {
 			log.Error("knowledge load failed; keeping the records already on the device", "path", p, "err", err)
 		} else {
 			log.Info("knowledge loaded", "bundle_version", rep.BundleVersion, "loaded", rep.Loaded,
@@ -311,6 +315,7 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (*agent, er
 		BaseURL: cfg.Sync.BaseURL, ServerKeys: serverKeys, BatchSize: cfg.Sync.BatchSize,
 		Interval: cfg.Sync.Interval.D(), HTTPTimeout: cfg.Sync.HTTPTimeout.D(), HousekeepDur: cfg.Sync.HousekeepInterval.D(),
 	}, a.ob, id, log.With("component", "sync"))
+	a.buildConnectivity(ctx, id, serverKeys)
 
 	switch cfg.HAL.Button {
 	case "gpio":
@@ -343,8 +348,12 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (*agent, er
 		a.button = hal.Sim{}
 	}
 
+	// Document assistance (Phase 11, documents.go): tesseract subprocess.
+	docs, docOCR := a.buildDocuments()
+
 	srv, err := api.New(api.Deps{
-		Sessions: a.sm, Engine: eng, STT: a.stt, TTS: a.tts, TTSLangs: cfg.Speech.TTSLangs, Health: a.mon, DB: st.DB, Outbox: a.ob,
+		Documents: docs,
+		Sessions:  a.sm, Engine: eng, STT: a.stt, TTS: a.tts, TTSLangs: cfg.Speech.TTSLangs, Health: a.mon, DB: st.DB, Outbox: a.ob,
 		Kick: a.sync.Kick, SimButton: a.button.Simulated(), DeviceID: id.DeviceID, Version: version,
 		DefaultLang: cfg.DefaultLanguage, Listen: cfg.Listen, UI: webui.Handler(),
 		HealthExtra: a.healthExtra, Log: log.With("component", "api"),
@@ -369,6 +378,7 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (*agent, er
 		srv.HealthChanged()
 	})
 	a.registerChecks()
+	a.registerOCRCheck(docOCR)
 
 	baseCtx, cancelBase := context.WithCancel(context.Background())
 	a.baseCtx, a.cancelBase = baseCtx, cancelBase
@@ -443,6 +453,7 @@ func (a *agent) serve(sigCtx context.Context) int {
 	goFn("session", func() { a.sessionLoop(workCtx) })
 	goFn("health", func() { a.mon.Run(workCtx) })
 	goFn("sync", func() { a.sync.Run(workCtx) })
+	a.startConnectivity(workCtx, goFn)
 	goFn("button", func() {
 		// PressButton returns at once: the press (session start, greeting
 		// TTS) runs on its own single-flight goroutine, cancelled with the

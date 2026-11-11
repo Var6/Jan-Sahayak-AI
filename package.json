@@ -8,6 +8,8 @@
   "scripts": {
     "dev:kiosk": "pnpm --filter citizen-kiosk dev",
     "dev:kiosk:mock": "pnpm --filter citizen-kiosk dev:mock",
+    "dev:admin": "pnpm --filter admin-dashboard dev",
+    "build:admin": "pnpm --filter admin-dashboard build",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",

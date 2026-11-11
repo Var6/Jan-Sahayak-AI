@@ -92,7 +92,9 @@ tmpfs profile (`/run/jan-sahayak-kiosk`), `--incognito`,
 `--autoplay-policy=no-user-gesture-required` (button-started sessions have no tap
 to unlock audio), and the managed policy `chromium-policy.json`:
 
-* microphone auto-granted for `http://127.0.0.1:8730` only, camera denied;
+* microphone and camera auto-granted for `http://127.0.0.1:8730` only (the
+  UI opens the camera only after the citizen consents to the document check;
+  the agent refuses document uploads without that consent);
 * every other URL blocked;
 * no password manager, autofill, sync, translate or dev tools.
 
@@ -146,3 +148,51 @@ allowlist validator is field-validated; LLM classification stays on.
   pressed on a real Pi.
 * `vcgencmd get_throttled` requires `/dev/vcio` access (group `video`).
 * Memory caps above are provisional until the Pi benchmark (roadmap Phase 13).
+
+## Document check (OCR)
+
+The document check (docs/API_DOCUMENTATION.md, "Document check") runs
+`tesseract` as a short-lived subprocess of the agent. Each photo goes in on
+stdin and the text comes out on stdout.
+
+```sh
+sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin
+tesseract --version          # bookworm ships 5.3.x; stdin input ("-") needs ≥ 4
+tesseract --list-langs       # must list eng and hin
+```
+
+`install.sh` installs these packages. The agent finds `tesseract` on `PATH`
+(`documents.tesseract_path`, default `tesseract`, which is
+`/usr/bin/tesseract` on Pi OS). It uses the package's tessdata unless
+`documents.tessdata_dir` is set. Without tesseract, or without the `hin`
+data, the `ocr` health component is UNAVAILABLE and the kiosk simply does
+not offer the document check (`capabilities.camera = false`). Nothing else
+degrades.
+
+Camera: any UVC USB camera, or the Pi camera exposed as a V4L2 device. The
+`kiosk` user is in the `video` group and the Chromium policy grants video
+capture to the kiosk origin only.
+
+Limits (config `documents.*`): OCR timeout 15 s, one process at a time,
+`OMP_THREAD_LIMIT=1`, stdout ≤ 64 KB, `RLIMIT_AS` 512 MB (applied with
+`prlimit` before the image is sent), JPEG ≤ 2 MB and ≤ 1600 px.
+
+**Memory budget (to verify on the Pi).** tesseract runs inside the agent's
+cgroup, so it counts against `MemoryMax=256M` of `jan-sahayak-agent`.
+Measured on the M1: agent RSS 24–26 MB during the check, and tesseract peak
+RSS 48 MB for a 1000×560 page and 52 MB for a 1600×1524 page. Together that
+fits under 256 MB. If the Pi shows tesseract being OOM-killed, the agent keeps
+running: the cgroup OOM killer picks the largest process, which is
+tesseract. The check fails with 503, `ocr` goes UNAVAILABLE until the next
+self-test, and the cap should then be raised.
+
+To verify on hardware:
+
+* `strace -f -e trace=openat,creat -p <agent pid>` during a document check:
+  no file may be created. Leptonica should decode from memory (`fmemopen`).
+* tesseract runs under the agent's seccomp filter (`@system-service`) and
+  `MemoryDenyWriteExecute=yes`. Run one check and look for EPERM in the
+  journal.
+* OCR latency on the Pi 5. M1: 0.13–0.28 s per synthetic page through the
+  API, 0.6 s for a 1600-px page.
+

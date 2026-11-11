@@ -15,6 +15,7 @@ import { type EventSourceFactory, EventStream } from "../api/events";
 import type { Lang, Reply, SessionSnapshot, TurnResult } from "../api/types";
 import type { Player } from "../audio/player";
 import { MicError, type Recorder } from "../audio/recorder";
+import { BrowserCamera, type Camera } from "../camera/camera";
 import {
   type Action,
   type NoticeKey,
@@ -28,6 +29,8 @@ export interface ControllerDeps {
   recorder: Recorder;
   player: Player;
   createEventSource?: EventSourceFactory;
+  /** Document check camera (default: the browser's getUserMedia). */
+  camera?: Camera;
   /** Override timings (tests). */
   timings?: Partial<typeof TIMINGS>;
 }
@@ -62,6 +65,13 @@ export class KioskController {
    * not loop listen → "please repeat" → listen until the inactivity timeout.
    */
   private silentTurns = 0;
+  /**
+   * The document check screen is open: the microphone must stay closed
+   * (no auto-listen, no mic button) while the camera flow runs.
+   */
+  private docMode = false;
+  /** Camera for the document check. */
+  readonly camera: Camera;
 
   constructor(
     private readonly deps: ControllerDeps,
@@ -69,6 +79,24 @@ export class KioskController {
     private readonly dispatch: (a: Action) => void,
   ) {
     this.t = { ...TIMINGS, ...deps.timings };
+    this.camera = deps.camera ?? new BrowserCamera();
+  }
+
+  /** The device API (the document check screen talks to it directly). */
+  get api(): DeviceApi {
+    return this.deps.api;
+  }
+
+  /**
+   * Enter/leave the document check: entering stops any recording and
+   * playback and keeps the microphone closed until it is left.
+   */
+  setDocumentMode(on: boolean): void {
+    this.docMode = on;
+    if (on) {
+      this.bargeIn = false;
+      this.cancelVoice();
+    }
   }
 
   // ---- lifecycle -------------------------------------------------------
@@ -218,7 +246,7 @@ export class KioskController {
   /** The big mic button. Meaning depends on what is happening. */
   async micPressed(): Promise<void> {
     const s = this.getState();
-    if (s.screen !== "conversation") return;
+    if (s.screen !== "conversation" || this.docMode) return;
     this.touchSoon();
     this.silentTurns = 0;
     switch (s.voice) {
@@ -343,7 +371,7 @@ export class KioskController {
   private async listenAndRecord(): Promise<void> {
     const s = this.getState();
     const id = s.session?.id;
-    if (!id) return;
+    if (!id || this.docMode) return;
     const epoch = this.epoch;
     this.dispatch({ type: "voice", voice: "opening" });
     let session: SessionSnapshot;
@@ -385,6 +413,10 @@ export class KioskController {
 
   /** Precondition: the agent has just confirmed LISTENING for session `id`. */
   private async recordAndSend(id: string, epoch: number): Promise<void> {
+    if (this.docMode) {
+      this.dispatch({ type: "voice", voice: "idle" });
+      return;
+    }
     this.dispatch({ type: "voice", voice: "recording" });
     let wav: Blob;
     try {
@@ -493,7 +525,7 @@ export class KioskController {
   ): Promise<void> {
     const s = this.getState();
     const id = s.session?.id;
-    if (!id || s.screen !== "conversation" || reply.end_session) return;
+    if (!id || s.screen !== "conversation" || reply.end_session || this.docMode) return;
     if (this.silentTurns >= MAX_SILENT_AUTO_LISTENS) return;
     // Only when the agent itself put the session in LISTENING (listen_next).
     if (
@@ -543,6 +575,7 @@ export class KioskController {
   private onSessionGone(wasActive: boolean): void {
     this.epoch++;
     this.bargeIn = false;
+    this.docMode = false;
     this.silentTurns = 0;
     this.deps.recorder.abort();
     this.deps.player.stop();

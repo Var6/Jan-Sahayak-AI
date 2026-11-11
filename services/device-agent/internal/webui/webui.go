@@ -63,7 +63,8 @@ func Handler() http.Handler {
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		h.Set("Permissions-Policy", "microphone=(self), camera=(), geolocation=(), payment=(), usb=()")
+		// camera=(self): document check (only after consent; see api/documents.go).
+		h.Set("Permissions-Policy", "microphone=(self), camera=(self), geolocation=(), payment=(), usb=()")
 		if !built {
 			h.Set("Content-Type", "text/html; charset=utf-8")
 			h.Set("Cache-Control", "no-store")

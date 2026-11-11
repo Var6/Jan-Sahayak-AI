@@ -29,6 +29,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -89,6 +90,32 @@ type Config struct {
 	Health    HealthConfig    `json:"health"`
 	Backup    BackupConfig    `json:"backup"`
 	HAL       HALConfig       `json:"hal"`
+	Documents DocumentsConfig `json:"documents"`
+}
+
+// DocumentsConfig controls document assistance: a citizen shows a document
+// to the camera (after explicit consent) and a tesseract subprocess reads
+// it in memory to tell which of the scheme's documents they already have.
+type DocumentsConfig struct {
+	Enabled bool `json:"enabled"`
+	// TesseractPath is the binary (a bare name is looked up in PATH).
+	TesseractPath string `json:"tesseract_path"`
+	// Languages for tesseract -l ("eng+hin": English first reads digits
+	// reliably; see internal/docassist).
+	Languages string `json:"languages"`
+	// TessdataDir sets TESSDATA_PREFIX ("" = the package default).
+	TessdataDir string `json:"tessdata_dir"`
+	// OCRTimeout bounds one recognition; the process is killed after it.
+	OCRTimeout Duration `json:"ocr_timeout"`
+	// MaxImageBytes / MaxImageSide bound an uploaded JPEG.
+	MaxImageBytes int64 `json:"max_image_bytes"`
+	MaxImageSide  int   `json:"max_image_side"`
+	// MaxOutputBytes caps the OCR text read from tesseract's stdout.
+	MaxOutputBytes int `json:"max_output_bytes"`
+	// MaxMemoryMB caps tesseract's address space (RLIMIT_AS, Linux only).
+	MaxMemoryMB int `json:"max_memory_mb"`
+	// HealthInterval: how often the "ocr" health check runs its self-test.
+	HealthInterval Duration `json:"health_interval"`
 }
 
 // SessionConfig holds the inactivity rules (2/9/10 minutes by default).
@@ -169,6 +196,9 @@ type KnowledgeConfig struct {
 	// AllowUnverifiedForDev shows UNVERIFIED content under a disclaimer.
 	// Refused unless the profile starts with "dev".
 	AllowUnverifiedForDev bool `json:"allow_unverified_for_dev"`
+	// StaleAfter: a central bundle (version YYYY-MM-DD.N) older than this
+	// makes the knowledge health component DEGRADED ("bundle_stale").
+	StaleAfter Duration `json:"stale_after"`
 }
 
 // SyncConfig configures uploads to the central API and the outbox bounds.
@@ -182,6 +212,12 @@ type SyncConfig struct {
 	OutboxMaxRows     int               `json:"outbox_max_rows"`
 	AckRetention      Duration          `json:"ack_retention"`
 	MaxAttempts       int               `json:"max_attempts"`
+	// HeartbeatInterval: signed POST /v1/devices/heartbeat cadence (±10 %
+	// jitter; failures back off up to 30 min). Only when BaseURL is set.
+	HeartbeatInterval Duration `json:"heartbeat_interval"`
+	// BundleInterval: signed GET /v1/devices/knowledge-bundle cadence
+	// (also once shortly after start). Only when BaseURL is set.
+	BundleInterval Duration `json:"bundle_interval"`
 }
 
 // HealthConfig holds check intervals and thresholds.
@@ -287,6 +323,7 @@ func Defaults() Config {
 		Dialogue: DialogueConfig{MinSTTConfidence: 0.45, MaxMisses: 3},
 		Knowledge: KnowledgeConfig{
 			RequireSignedBundle: true,
+			StaleAfter:          Duration(30 * 24 * time.Hour),
 		},
 		Sync: SyncConfig{
 			BatchSize:         100,
@@ -296,6 +333,8 @@ func Defaults() Config {
 			OutboxMaxRows:     100_000,
 			AckRetention:      Duration(7 * 24 * time.Hour),
 			MaxAttempts:       50,
+			HeartbeatInterval: Duration(5 * time.Minute),
+			BundleInterval:    Duration(6 * time.Hour),
 		},
 		Health: HealthConfig{
 			DBInterval:         Duration(15 * time.Second),
@@ -323,6 +362,19 @@ func Defaults() Config {
 			PullUp:      true,
 			Debounce:    Duration(30 * time.Millisecond),
 			MinPressGap: Duration(time.Second),
+		},
+		Documents: DocumentsConfig{
+			// Without tesseract installed the "ocr" health component is
+			// UNAVAILABLE and capabilities.camera stays false.
+			Enabled:        true,
+			TesseractPath:  "tesseract",
+			Languages:      "eng+hin",
+			OCRTimeout:     Duration(15 * time.Second),
+			MaxImageBytes:  2 << 20,
+			MaxImageSide:   1600,
+			MaxOutputBytes: 64 << 10,
+			MaxMemoryMB:    512,
+			HealthInterval: Duration(2 * time.Minute),
 		},
 	}
 }
@@ -445,6 +497,10 @@ func (c Config) BackupDir() string {
 	}
 	return filepath.Join(c.DataDir, "backups")
 }
+
+// BundleCachePath is where the last knowledge bundle downloaded from the
+// central server is kept (exact signed bytes, re-verified before reuse).
+func (c Config) BundleCachePath() string { return filepath.Join(c.DataDir, "knowledge", "bundle.json") }
 
 // ServerPublicKeys decodes Sync.ServerKeys.
 func (c Config) ServerPublicKeys() (map[string]ed25519.PublicKey, error) {
@@ -624,8 +680,11 @@ func (c *Config) Validate() error {
 	intIn("sync.outbox_max_rows", sy.OutboxMaxRows, 1000, 1_000_000)
 	durIn("sync.ack_retention", sy.AckRetention, time.Hour, 90*24*time.Hour)
 	intIn("sync.max_attempts", sy.MaxAttempts, 1, 1000)
+	durIn("sync.heartbeat_interval", sy.HeartbeatInterval, time.Minute, time.Hour)
+	durIn("sync.bundle_interval", sy.BundleInterval, 15*time.Minute, 7*24*time.Hour)
 
 	k := c.Knowledge
+	durIn("knowledge.stale_after", k.StaleAfter, 24*time.Hour, 365*24*time.Hour)
 	if k.RequireSignedBundle && k.Path != "" {
 		if fi, err := os.Stat(k.Path); err == nil && fi.IsDir() {
 			bad("knowledge.path is a directory but require_signed_bundle is on (use a signed bundle file)")
@@ -680,11 +739,37 @@ func (c *Config) Validate() error {
 	durIn("hal.debounce", hl.Debounce, 0, time.Second)
 	durIn("hal.min_press_gap", hl.MinPressGap, 0, 10*time.Second)
 
+	if dc := c.Documents; dc.Enabled {
+		if strings.TrimSpace(dc.TesseractPath) == "" {
+			bad("documents.tesseract_path is required when documents.enabled")
+		}
+		if !docLangsRe.MatchString(dc.Languages) {
+			bad("documents.languages %q (want tesseract codes joined by '+', e.g. eng+hin)", dc.Languages)
+		}
+		durIn("documents.ocr_timeout", dc.OCRTimeout, 2*time.Second, time.Minute)
+		if dc.MaxImageBytes < 64<<10 || dc.MaxImageBytes > 4<<20 {
+			bad("documents.max_image_bytes must be within 64 KiB..4 MiB")
+		}
+		intIn("documents.max_image_side", dc.MaxImageSide, 640, 2400)
+		intIn("documents.max_output_bytes", dc.MaxOutputBytes, 4<<10, 256<<10)
+		if dc.MaxMemoryMB != 0 {
+			intIn("documents.max_memory_mb", dc.MaxMemoryMB, 128, 2048)
+		}
+		durIn("documents.health_interval", dc.HealthInterval, 15*time.Second, time.Hour)
+		if c.API.WriteTimeout.D() < dc.OCRTimeout.D()+10*time.Second {
+			bad("api.write_timeout must exceed documents.ocr_timeout by at least 10s")
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.New("config: invalid:\n  - " + strings.Join(errs, "\n  - "))
 	}
 	return nil
 }
+
+// docLangsRe: tesseract language codes such as "eng+hin" (also keeps
+// anything shell-like out of the argument list).
+var docLangsRe = regexp.MustCompile(`^[a-z_]{3,16}(\+[a-z_]{3,16}){0,3}$`)
 
 func loopbackHostPort(hp string) error {
 	host, port, err := net.SplitHostPort(hp)

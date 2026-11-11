@@ -5,6 +5,7 @@ import { extractNumbers } from "../format";
 import { t } from "../i18n";
 import type { KioskController } from "../state/controller";
 import { type UiState, voiceInputAvailable, voiceOutputAvailable } from "../state/machine";
+import { DocumentCheck } from "./DocumentCheck";
 import { PhoneIcon, ReplayIcon, SendIcon } from "./Icons";
 import { indicatorOf, MicButton } from "./MicButton";
 import { SchemeCard } from "./SchemeCard";
@@ -95,12 +96,49 @@ export function Conversation({ state, ctl }: { state: UiState; ctl: KioskControl
   const voiceIn = voiceInputAvailable(state);
   const voiceOut = voiceOutputAvailable(state);
   const interacting = state.busy || state.voice === "uploading" || state.voice === "opening";
+  const [docOpen, setDocOpen] = useState(false);
+  const sessionId = state.session?.id;
+  // Offer the document check while a scheme is on screen (its card) and
+  // the kiosk can read documents (camera + OCR healthy).
+  const canCheckDocs =
+    !!state.caps?.camera &&
+    !!sessionId &&
+    reply?.kind !== "crisis" &&
+    (reply?.cards?.length ?? 0) > 0;
+
+  // Leaving the conversation (session end) also leaves document mode.
+  useEffect(() => () => ctl.setDocumentMode(false), [ctl]);
+
+  const openDocs = () => {
+    ctl.touchSoon(true);
+    ctl.setDocumentMode(true);
+    setDocOpen(true);
+  };
+  const closeDocs = () => {
+    ctl.setDocumentMode(false);
+    setDocOpen(false);
+  };
 
   // New reply → scroll to its top.
   // biome-ignore lint/correctness/useExhaustiveDependencies: replySeq is the trigger
   useEffect(() => {
     scrollRef.current?.scrollTo?.({ top: 0 });
   }, [state.replySeq]);
+
+  if (docOpen && sessionId) {
+    return (
+      <main className="conv conv--doc" onPointerDown={() => ctl.touchSoon()}>
+        <DocumentCheck
+          api={ctl.api}
+          camera={ctl.camera}
+          sessionId={sessionId}
+          lang={state.lang}
+          onActivity={() => ctl.touchSoon(true)}
+          onClose={closeDocs}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="conv" onPointerDown={() => ctl.touchSoon()}>
@@ -123,6 +161,17 @@ export function Conversation({ state, ctl }: { state: UiState; ctl: KioskControl
               <SchemeCard key={c.scheme_id} card={c} lang={state.lang} />
             ))}
           </div>
+        )}
+        {canCheckDocs && (
+          <button
+            type="button"
+            className="btn btn--doc"
+            onClick={openDocs}
+            disabled={interacting}
+            data-testid="doc-open"
+          >
+            {s.doc.open}
+          </button>
         )}
         {reply?.options && reply.options.length > 0 && (
           <div className="options">

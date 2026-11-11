@@ -138,6 +138,8 @@ type Deps struct {
 	Log         *slog.Logger
 	Limits      Limits
 	Now         func() time.Time
+	// Documents enables document assistance (documents.go); nil = off.
+	Documents *DocumentDeps
 }
 
 // Server implements the local API.
@@ -195,10 +197,11 @@ type convo struct {
 
 	// guarded by Server.mu
 	lang          string
-	recorded      bool // the sessions row was written
-	ended         bool // the session ended (no more turn records)
-	pendingListen bool // after SPEAKING → LISTENING
-	pendingEnd    bool // after SPEAKING → end session
+	recorded      bool     // the sessions row was written
+	ended         bool     // the session ended (no more turn records)
+	pendingListen bool     // after SPEAKING → LISTENING
+	pendingEnd    bool     // after SPEAKING → end session
+	doc           docState // document check results (documents.go)
 }
 
 type greeting struct {
@@ -296,6 +299,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST "+p+"/session/{id}/touch", s.handleTouch)
 	mux.HandleFunc("POST "+p+"/session/{id}/end", s.handleEnd)
 	mux.HandleFunc("GET "+p+"/session/{id}/audio/{file}", s.handleClip)
+	s.registerDocumentRoutes(mux, p)
 	mux.HandleFunc(p+"/", func(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusNotFound, "bad_request", "unknown endpoint")
 	})
@@ -568,6 +572,6 @@ func (s *Server) voiceOutputFor(lang string) bool { return s.voiceOutput() && s.
 func (s *Server) Capabilities() Capabilities {
 	return Capabilities{
 		VoiceInput: s.voiceInput(), VoiceOutput: s.voiceOutputFor(s.d.Sessions.Current().Language),
-		LLM: s.d.Health.IsUsable(CompLLM), SimButton: s.d.SimButton,
+		LLM: s.d.Health.IsUsable(CompLLM), SimButton: s.d.SimButton, Camera: s.camera(),
 	}
 }

@@ -166,6 +166,7 @@ func (a *agent) registerChecks() {
 			case verified == 0 && !a.ks.Config().UnverifiedAllowed():
 				r.State, r.Detail = health.Degraded, "no_verified_records"
 			}
+			a.knowledgeFreshness(bv, &r) // bundle age, stale > knowledge.stale_after, sync status
 			return r
 		}})
 
@@ -253,7 +254,8 @@ func (a *agent) healthExtra(ctx context.Context) map[string]any {
 			"classify_calls": es.ClassifyCalls, "classify_failed": es.ClassifyFailed,
 			"rephrase_accepted": es.RephraseAccepted, "rephrase_rejected": es.RephraseRejected, "rephrase_failed": es.RephraseFailed,
 		},
-		"sync":   a.sync.Status(),
-		"memory": resources.ReadMemory(ctx),
+		"sync":         a.sync.Status(),
+		"memory":       resources.ReadMemory(ctx),
+		"connectivity": a.connectivityStatus(),
 	}
 }

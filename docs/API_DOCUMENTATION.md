@@ -15,11 +15,12 @@ Two APIs:
   (DNS-rebinding protection). Mutating requests must carry
   `X-JS-Kiosk: 1` and must not carry a cross-site `Origin`/`Sec-Fetch-Site`
   (CSRF protection via `http.CrossOriginProtection`).
-* JSON bodies are limited to 16 KB; audio uploads to 1 MB.
+* JSON bodies are limited to 16 KB; audio uploads to 1 MB; document photos
+  to 2 MB.
 * Errors: `{"error": {"code": "string", "message": "string"}}` with an
   appropriate HTTP status. Codes: `no_session`, `wrong_session`,
   `bad_state`, `bad_request`, `too_large`, `bad_audio`, `unavailable`,
-  `button_disabled`, `internal`.
+  `button_disabled`, `no_consent`, `bad_image`, `internal`.
 
 ### Types
 
@@ -80,6 +81,9 @@ type HealthState = "HEALTHY" | "DEGRADED" | "UNAVAILABLE" | "RECOVERING" | "REQU
 | `POST /api/v1/session/{id}/end` | — | `{session, reply: Reply, audio_url?}` | Visible "End session" button. Returns goodbye. |
 | `GET /api/v1/session/{id}/audio/{n}.wav` | — | `audio/wav` | Reply audio for turn n. Kept in RAM (bounded LRU, ≤ 8 clips) and dropped at session end. |
 | `GET /api/v1/health` | — | health snapshot | Detailed component health (for technicians). |
+| `POST /api/v1/session/{id}/camera-consent` | `{consent: boolean}` | `{session}` | Explicit per-session consent for the document check (see below). `true` is refused with 503 `unavailable` unless `capabilities.camera`. `false` withdraws it and forgets every document result of the session. |
+| `POST /api/v1/session/{id}/document` | JPEG body (`image/jpeg`, ≤ 2 MB, long side ≤ 1600 px, short side ≥ 200 px) | `DocumentResult` | Requires consent (403 `no_consent`) and the session in `READY` or `LISTENING` (409 `bad_state` otherwise). Read once in memory by OCR, then dropped. |
+| `POST /api/v1/session/{id}/document/confirm` | `{correct: boolean}` | `ConfirmResult` | The citizen's answer to "is this a <type>?". 409 `bad_state` when no photo awaits confirmation. |
 
 ### Agent behaviour (implemented in `services/device-agent/internal/api`)
 
@@ -125,6 +129,95 @@ type HealthState = "HEALTHY" | "DEGRADED" | "UNAVAILABLE" | "RECOVERING" | "REQU
   `stt_request_failed`, `db_write_failed`, `outbox_full`, `disk_low`,
   `speech_engine_hung`; error text goes only to the local log.
 
+### Document check (implemented in `internal/api/documents.go`, `internal/docassist`)
+
+Purpose: help a citizen see which of the documents required by the scheme
+being discussed they already have. It is **not** authentication and **not**
+storage: OCR cannot tell a genuine document from a forged one, and every
+response says so (`notice`).
+
+```ts
+type DocType = "aadhaar" | "ration_card" | "caste_certificate" | "income_certificate"
+  | "residence_certificate" | "bank_passbook" | "voter_id" | "pan" | "land_record"
+  | "birth_certificate" | "school_certificate" | "unknown";
+
+interface DocumentResult {
+  session: SessionSnapshot;
+  document: {
+    doc_type: DocType; label: string; confidence: "high" | "low" | "none";
+    name?: string;               // only when clearly labelled ("नाम:", "Name:")
+    issuing_authority?: string;  // labelled issuer, or a line naming an office/department
+    issue_date?: string;         // DD/MM/YYYY, only next to an issue-date label (never a birth date)
+    masked_ids?: { kind: "aadhaar" | "vid" | "pan" | "epic" | "account" | "number"; value: string }[];
+                                 // last 4 characters only: "XXXX XXXX 1234"
+  };
+  text: string;        // "यह <type> लगता है — क्या यह सही है?" or how to retake
+  can_confirm: boolean; // false for "unknown" (offer only "retake")
+  notice: string;      // OCR does not verify authenticity; the photo was not kept
+}
+
+interface ConfirmResult {
+  session: SessionSnapshot;
+  text: string;
+  confirmed: { doc_type: DocType; label: string }[];
+  coverage?: {                 // absent when no scheme is being discussed
+    scheme_id: string; scheme_name: string;
+    mode: "factual" | "unverified_dev" | "name_only"; verified: boolean;
+    items?: { name: string; note?: string; optional: boolean;
+              status: "seen" | "not_seen" | "not_checkable" }[];
+    message?: string;          // name_only: "verified details not available …" instead of items
+    disclaimer?: string;       // unverified_dev: the "not verified (test mode)" warning
+  };
+  caveat?: string;             // "this compares only the kind of document …"
+  notice: string;
+}
+```
+
+Flow and rules:
+
+* `capabilities.camera` is true only when document assistance is enabled
+  (`documents.enabled`) and the `ocr` health component is usable. That check
+  runs `tesseract --version`, confirms the configured languages are
+  installed, and reads a tiny embedded self-test image. It runs every
+  `documents.health_interval` (2 min).
+* The UI offers "दस्तावेज़ जाँचें / Check my documents" while a scheme card
+  is on screen. It shows a consent screen first, posts `camera-consent`, and
+  opens `getUserMedia` (video only) only after that succeeds. It stops the
+  video tracks right after the photo and whenever the screen closes. Closing
+  the screen withdraws the consent.
+* Upload: the agent moves the session to `PROCESSING` (a turn cannot run
+  meanwhile) and pipes the JPEG into
+  `tesseract - - -l eng+hin --psm 3` on stdin. Nothing is written to disk.
+  The process runs with a minimal environment, `OMP_THREAD_LIMIT=1`, its own
+  process group (killed on timeout, 15 s) and, on Linux, `RLIMIT_AS`
+  (`documents.max_memory_mb`, 512) and a parent-death signal. Stdout is
+  capped at 64 KB. One OCR runs at a time; a second gets 503 `unavailable`.
+  The request buffer is zeroed afterwards. Then the session returns to
+  `READY`.
+* Language order: `eng+hin`, not `hin+eng`. On the synthetic fixtures,
+  `hin+eng` dropped the digit 1 (`1234` → `234`); `eng+hin` read both
+  scripts correctly. Configurable in `documents.languages`.
+* The OCR text is classified by keyword rules (`internal/docassist/classify.go`;
+  ties or weak evidence give `unknown`) and only the fields above leave the
+  agent. Identifiers are masked, and every free-text field is scrubbed of
+  long digit runs and PAN/EPIC-shaped tokens. The raw OCR text is never
+  returned, logged, stored or sent centrally.
+* If consent is withdrawn or the session ends while OCR runs, the result is
+  discarded (403 `no_consent` / 404 `no_session`).
+* Coverage follows the knowledge display policy. The scheme record's
+  `mandatory_docs` / `optional_docs` are compared only for a `factual` record,
+  or for an `unverified_dev` record shown with its disclaimer. Otherwise the
+  response says verification is required (`message`). Matching is by document
+  kind only (`TypesFor`): a requirement naming a bank account maps to the
+  passbook even if it also says "Aadhaar". Requirements a camera cannot check
+  (forms, photos, affidavits) are `not_checkable`.
+* Session end (or consent withdrawal) drops every document result. Camera
+  consent never carries over to the next session.
+* Failures: OCR timeout or busy → 503 `unavailable` (camera stays offered);
+  OCR process failure → 503 and `ocr` reported `UNAVAILABLE`
+  (`ocr_failed`), so `capabilities.camera` turns false until the next
+  passing health check.
+
 ---
 
 ## 2. Central API (v1)
@@ -144,14 +237,70 @@ Base: `https://<central-host>`.
 | Method & path | Role | Purpose |
 |---|---|---|
 | `POST /v1/admin/login`, `POST /v1/admin/logout` | any | Server-side sessions (argon2id passwords). |
+| `GET /v1/admin/me` | any | Current user and roles (the dashboard's session check). |
 | `GET /v1/admin/analytics/summary?from&to` | viewer | Sessions, categories, languages, resolution rates. |
 | `GET /v1/admin/devices`, `GET /v1/admin/devices/{id}` | viewer | Device registry, last heartbeat, sync status, versions. |
 | `POST /v1/admin/devices` | device_admin | Register a device (public key from provisioning). |
 | `POST /v1/admin/devices/{id}/revoke` | device_admin | Revoke a device key. |
 | `GET /v1/admin/schemes`, `GET /v1/admin/schemes/{id}` | viewer | Knowledge records and history. |
+| `GET /v1/admin/schemes/{id}/versions/{version}` | viewer | One version with its full record (used for diffs). |
 | `PUT /v1/admin/schemes/{id}` | scheme_editor | Create/update a draft (status forced to NEEDS_REVIEW). |
 | `POST /v1/admin/schemes/{id}/verify` | scheme_reviewer | Human verification (cannot be the same user as the last editor). |
+| `POST /v1/admin/schemes/{id}/withdraw` | scheme_reviewer | Mark the live VERIFIED version OUTDATED (reason required). |
+| `GET /v1/admin/bundles` | viewer | Published bundles, newest first. |
 | `POST /v1/admin/bundles` | scheme_reviewer | Publish a signed bundle for devices. |
 | `GET /v1/admin/audit` | auditor | Audit log. |
 
 Full request/response schemas are in `services/central-api/openapi.yaml`.
+
+### Admin dashboard (static UI)
+
+`apps/admin-dashboard` is a Next.js 16 App Router app built as a pure static
+export (`output: "export"`, `basePath: "/admin"`, `trailingSlash: true`): no
+route handlers, Server Functions, middleware or image optimisation. central-api
+serves the `out/` directory at `/admin/` when started with
+`-admin-ui-dir` / `JS_ADMIN_UI_DIR` (GET/HEAD only, `os.Root`-confined, no
+listings). The browser calls the admin API above on the same origin; the
+`js_admin` cookie (HttpOnly, `Path=/v1/admin`) is never readable by page code.
+Pages that need an id take it as a query parameter
+(`/admin/schemes/detail/?id=…`, `/admin/devices/detail/?id=…`) because a
+static export cannot pre-render unknown ids.
+
+**CSP and inline scripts.** Next.js bootstraps every exported page with
+inline `<script>` elements (`self.__next_f.push(...)`). The UI CSP stays
+`script-src 'self'` with no `'unsafe-inline'` and no nonces (a static file
+server cannot mint them). Instead `pnpm build` runs
+`scripts/csp-hashes.mjs`, which writes `out/csp-hashes.json`
+(`{"version":1,"files":{"<page>.html":["sha256-…"]}}`) with the SHA-256 of
+each page's inline scripts. central-api reads it once at startup
+(`static_ui.go`: ≤ 4 MiB, ≤ 2000 pages, ≤ 256 hashes per page, strict
+`sha256-<base64>` format; a malformed file fails startup) and serves each HTML
+page with `script-src 'self' '<its own hashes>'`. A page not listed, or a
+build without the file, gets plain `script-src 'self'`, so its inline scripts
+are blocked and it does not hydrate. **Restart central-api after deploying a
+new dashboard build** so the new hashes are loaded. The hashes add no trust
+beyond the files themselves: whoever can write the HTML can write the
+manifest, exactly as with any served script.
+
+Build and run locally:
+
+```sh
+pnpm --filter admin-dashboard build          # out/ + out/csp-hashes.json
+scripts/dev/central.sh                       # or: central-api ... -admin-ui-dir apps/admin-dashboard/out
+open http://127.0.0.1:8750/admin/
+```
+
+`pnpm dev:admin` starts `next dev` on :8751 for layout work only; it does not
+proxy `/v1/admin`, so API calls need the built export behind central-api.
+
+**Behaviour.** The UI hides actions the user's roles do not allow (mirror
+of `roleReq.satisfiedBy`; `admin` satisfies all); the server remains the
+authority. Verify requires the reviewer to tick a statement that they
+personally checked every fact against the listed sources; the four-eyes rule
+is explained before the server refuses with `own_edit`. Analytics counts the
+server suppressed (`null`) are shown as `<5` and drawn as hatched bars, never
+as zero. Devices count as online when the last heartbeat is under 15 minutes
+old (provisional: align with the device agent's heartbeat interval once it is fixed).
+The device list fetches per-device detail (3 at a time, visible page of 25
+only) for disk, memory, temperature and last sync, because the list endpoint
+carries only a heartbeat summary.

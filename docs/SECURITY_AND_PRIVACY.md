@@ -19,8 +19,36 @@ Status: design + implemented controls as of 2026-11-09. Items marked
 * Analytics (outbox) contain only: random session id, device id, timestamps,
   language, intent/category, scheme id, resolution, input source,
   whether the LLM was used. No free text.
-* No document images stored by default (Phase 11: OCR in memory, citizen
-  confirms extracted fields, nothing persisted without consent).
+* No document images stored, ever (Phase 11: OCR in memory, the citizen
+  confirms the detected document type; see section 1a).
+
+## 1a. Document check (Phase 11)
+
+Purpose: tell a citizen which of the documents the scheme they are asking
+about needs they seem to have already. It is **not** identity verification,
+**not** an authenticity check and **not** storage.
+
+| Step | Control |
+|---|---|
+| Consent | The UI shows a consent screen first. It says the camera is used only for this check, the photo is read once inside the kiosk and then discarded, and nothing is saved or sent. It also says to show an Aadhaar card only if needed, and preferably only its heading with the number covered. The agent records consent per session (`camera-consent`). Uploads without it get 403 `no_consent`, and consent never carries over to the next session. |
+| Camera | `getUserMedia` with video only (no audio), opened only after the consent POST succeeded. Every track is stopped right after the photo and whenever the screen closes or the session ends. Closing the screen withdraws the consent. Chromium policy allows video capture for `http://127.0.0.1:8730` only, and the agent's `Permissions-Policy` is `camera=(self)`. |
+| Photo | One downscaled JPEG (≤ 1600 px, ≤ 2 MB) per upload, held only in memory. The agent pipes it into a `tesseract` subprocess on stdin and reads the text from stdout; no file is written by the agent. The request buffer is zeroed after OCR. The browser keeps no copy (the canvas is cleared, no storage APIs). |
+| OCR process | Minimal environment, one OpenMP thread, its own process group killed on timeout (15 s), stdout capped at 64 KB, one process at a time. On Linux it also gets `RLIMIT_AS` (512 MB) and a parent-death signal. It inherits the agent unit's sandbox (`ProtectSystem=strict`, `PrivateTmp`, seccomp `@system-service`, `MemoryMax`). |
+| What leaves OCR | Only the document type, a clearly labelled name, the issuing office, a labelled issue date, and identifiers masked to their last 4 characters ("XXXX XXXX 1234"). Free-text fields are scrubbed of long digit runs and PAN/EPIC-shaped tokens. The raw OCR text is never returned to the UI, logged, put in analytics or sent centrally. |
+| Retention | The pending result and the confirmed document types live in the session's RAM conversation. They are dropped when consent is withdrawn and when the session ends; a result that finishes after either is discarded. No outbox event is written for document checks. |
+| Facts | Comparison with a scheme's document list follows the knowledge display policy. It is used only for human-verified (`factual`) records, or in dev with the "not verified" disclaimer. Otherwise the citizen is told verification is required. Matching is by document kind only, and the reply says that conditions (whose document, how recent) must be confirmed at the office. |
+
+Residual risks / to verify **[legal review]** for the DPDP aspects:
+
+* The name and masked identifiers are personal data shown on screen to the
+  citizen holding the document. A bystander could see them, as with the
+  paper document itself.
+* Leptonica decodes images from memory (`fmemopen`) on the platforms checked,
+  but this has not been traced on the Pi. Run
+  `strace -f -e trace=openat,creat` during a document check on the Pi to
+  confirm that no temp file is created.
+* The kiosk cannot detect that someone is photographing another person's
+  document.
 
 ## 2. Device security
 
@@ -85,6 +113,7 @@ Other legal items **[legal review]**:
 |---|---|
 | Someone at the kiosk tries to make it chat/act outside scope | Topic guard, deterministic flows, validator; LLM has no capabilities. |
 | Prompt injection via spoken/typed text or a scanned document | Inputs treated as data; injection patterns redirected; validator blocks invented facts. |
+| Malicious or oversized image | JPEG header check (magic bytes, dimensions ≤ 1600 px) before OCR, 2 MB body cap, OCR in a separate time- and memory-limited process; the OCR text never reaches the LLM or the dialogue engine. |
 | Malicious website on the kiosk browser reaching the agent | Loopback bind + Host check + CSRF protection; kiosk browser locked to the agent origin. |
 | Stolen device | No personal data stored; device key revocable centrally; disk encryption planned. |
 | Forged or replayed sync traffic | Ed25519 signatures, timestamp window, nonce store. |

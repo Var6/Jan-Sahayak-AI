@@ -3,7 +3,9 @@
 // Requests use relative same-origin paths: the agent serves this UI at `/`.
 
 import type {
+  ConfirmResult,
   DeviceStatus,
+  DocumentResult,
   ErrorBody,
   Lang,
   ReplyResult,
@@ -18,6 +20,9 @@ export const API_BASE = "/api/v1";
 export const MAX_JSON_BYTES = 16 * 1024;
 export const MAX_AUDIO_BYTES = 1024 * 1024;
 export const MAX_TEXT_CHARS = 500;
+/** Document photos: JPEG, at most 2 MB and 1600 px on the long side. */
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_IMAGE_SIDE = 1600;
 
 /** Per-call timeouts in milliseconds. */
 export const TIMEOUTS = {
@@ -25,6 +30,7 @@ export const TIMEOUTS = {
   control: 10_000, // listen, speaking-done, language, touch
   reply: 30_000, // start, end (greeting/goodbye include TTS)
   turn: 60_000, // audio, text, option (STT + dialogue + TTS on a Pi)
+  document: 30_000, // photo upload + OCR (agent OCR timeout 15 s)
 } as const;
 
 /**
@@ -142,6 +148,28 @@ export class DeviceApi {
 
   async end(id: string): Promise<ReplyResult> {
     return this.post(`/session/${sid(id)}/end`, TIMEOUTS.reply);
+  }
+
+  /** Explicit consent (or its withdrawal) for the document check camera. */
+  async cameraConsent(id: string, consent: boolean): Promise<SessionResult> {
+    return this.post(`/session/${sid(id)}/camera-consent`, TIMEOUTS.control, { consent });
+  }
+
+  /** One document photo (JPEG). The agent reads it in memory and drops it. */
+  async sendDocument(id: string, jpeg: Blob): Promise<DocumentResult> {
+    if (jpeg.size > MAX_IMAGE_BYTES) throw new ApiError("too_large", 0, "image exceeds 2 MB");
+    return this.request({
+      method: "POST",
+      path: `/session/${sid(id)}/document`,
+      timeoutMs: TIMEOUTS.document,
+      body: jpeg,
+      contentType: "image/jpeg",
+    });
+  }
+
+  /** The citizen's answer to "is this a <type>?". */
+  async confirmDocument(id: string, correct: boolean): Promise<ConfirmResult> {
+    return this.post(`/session/${sid(id)}/document/confirm`, TIMEOUTS.control, { correct });
   }
 
   private post<T>(path: string, timeoutMs: number, json?: unknown): Promise<T> {

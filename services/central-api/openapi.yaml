@@ -32,7 +32,9 @@ info:
     **Deployment:** the server listens on loopback over plain HTTP behind a
     TLS reverse proxy (`deployment/server/Caddyfile`). If started with
     `-admin-ui-dir`, a static admin dashboard export is served at `/admin/`
-    (GET/HEAD only, same-origin CSP, no directory listings).
+    (GET/HEAD only, same-origin CSP, no directory listings). Inline scripts
+    run only if their SHA-256 is listed for that page in the export's
+    `csp-hashes.json` (read at startup; see docs/API_DOCUMENTATION.md).
 
     Errors: `{"error": {"code": string, "message": string, "details"?: string[]}}`.
 servers:

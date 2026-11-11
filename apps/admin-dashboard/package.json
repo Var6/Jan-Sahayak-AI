@@ -1,0 +1,33 @@
+{
+  "name": "admin-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Jan Sahayak admin dashboard: static Next.js export served by central-api at /admin/.",
+  "scripts": {
+    "dev": "next dev --port 8751",
+    "build": "next build && node scripts/csp-hashes.mjs out",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "happy-dom": "21.0.4",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
