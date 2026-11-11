@@ -34,7 +34,11 @@ export function MicButton({ indicator, level, lang, disabled, onPress }: Props) 
   const s = t(lang);
   const label = s.mic[indicator];
   const action =
-    indicator === "listening" ? s.mic.stop : indicator === "speaking" ? s.mic.interrupt : s.mic.idle;
+    indicator === "listening"
+      ? s.mic.stop
+      : indicator === "speaking"
+        ? s.mic.interrupt
+        : s.mic.idle;
   const style = { "--level": level.toFixed(2) } as CSSProperties;
   return (
     <div className={`mic mic--${indicator}`} style={style}>

@@ -1,0 +1,84 @@
+# Jan Sahayak device agent (Go). Owns sessions, storage, sync, health, the
+# GPIO button and the loopback API/UI on 127.0.0.1:8730.
+# Type=notify: READY=1 is sent only after the database answers and the API
+# serves (retried until it does); WATCHDOG=1 only while that self-check
+# passes and the health, session and sync loops keep stamping heartbeats.
+# A missing GPIO button degrades the agent (button health component) and is
+# retried; it does not fail startup.
+# Restart policy: never give up. StartLimitIntervalSec=0 disables the start
+# rate limit, so a persistent startup error (GPIO not ready, DB permissions,
+# a bad model file) keeps being retried every RestartSec instead of leaving
+# the unit failed until someone reboots the kiosk. Pi OS bookworm ships
+# systemd 252, which has no RestartSteps/RestartMaxDelaySec, so the delay is
+# a modest fixed 5 s.
+[Unit]
+Description=Jan Sahayak device agent
+Documentation=file:///opt/jan-sahayak/share/README.md
+After=local-fs.target network-online.target jan-sahayak-speech.service jan-sahayak-llm.service
+Wants=network-online.target jan-sahayak-speech.service jan-sahayak-llm.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=jansahayak
+Group=jansahayak
+# gpio: /dev/gpiochip*; video: /dev/vcio for `vcgencmd get_throttled`
+SupplementaryGroups=gpio video
+ExecStart=/opt/jan-sahayak/bin/device-agent -config /etc/jan-sahayak/device.json
+WorkingDirectory=/var/lib/jan-sahayak
+StateDirectory=jan-sahayak
+StateDirectoryMode=0750
+Restart=always
+RestartSec=5
+WatchdogSec=30
+TimeoutStartSec=60
+# Shutdown budget inside the agent: HTTP ≤ shutdown_timeout/2 + handler
+# drain 5 s + workers ≤ shutdown_timeout/2 + session record 5 s ≈ 25 s.
+TimeoutStopSec=30
+KillSignal=SIGTERM
+Environment=GOMAXPROCS=2
+# llama-server API key (install.sh creates /etc/jan-sahayak/llm-api-key,
+# root-only). systemd copies it to a per-service credentials directory
+# readable only by this unit's user.
+LoadCredential=llm-api-key:/etc/jan-sahayak/llm-api-key
+Environment=JS_LLM_API_KEY_FILE=%d/llm-api-key
+# Memory: Go soft limit is memory_limit_mb (200) in the config.
+MemoryHigh=200M
+MemoryMax=256M
+MemorySwapMax=0
+TasksMax=256
+LimitNOFILE=1024
+UMask=0027
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/jan-sahayak
+ProtectHome=yes
+PrivateTmp=yes
+DevicePolicy=closed
+DeviceAllow=/dev/gpiochip0 rw
+DeviceAllow=/dev/vcio rw
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @swap @reboot @debug
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

@@ -142,19 +142,27 @@ function reply(kind: string, text: string, extra: Partial<Reply> = {}): Reply {
   return { kind, text, listen_next: false, end_session: false, used_llm: false, ...extra };
 }
 
-function replyFor(lang: Lang, input: { text?: string; option?: string; seconds?: number; silent?: boolean }): Reply {
+function replyFor(
+  lang: Lang,
+  input: { text?: string; option?: string; seconds?: number; silent?: boolean },
+): Reply {
   const d = DEMO[lang];
   const opt = input.option ?? "";
   const text = (input.text ?? "").toLowerCase();
   if (input.silent) return reply("repeat", d.noSpeech, { listen_next: true });
-  if (opt === "demo_bye" || /bye|अलविदा/.test(text)) return reply("goodbye", d.bye, { end_session: true });
+  if (opt === "demo_bye" || /bye|अलविदा/.test(text))
+    return reply("goodbye", d.bye, { end_session: true });
   if (opt === "demo_crisis" || /crisis|संकट/.test(text)) return reply("crisis", d.crisis);
   if (opt === "demo_cards" || /card|कार्ड/.test(text)) {
     return reply("answer", d.cards, { cards: demoCards(lang), options: d.options });
   }
-  if (opt === "demo_question") return reply("question", d.question, { options: d.yesNo, listen_next: true });
+  if (opt === "demo_question")
+    return reply("question", d.question, { options: d.yesNo, listen_next: true });
   if (input.seconds !== undefined) {
-    return reply("answer", d.voice(input.seconds.toFixed(1)), { options: d.options, listen_next: false });
+    return reply("answer", d.voice(input.seconds.toFixed(1)), {
+      options: d.options,
+      listen_next: false,
+    });
   }
   return reply("answer", d.heard(input.text ?? opt), { options: d.options });
 }
@@ -187,7 +195,11 @@ function toneWav(ms: number, hz: number): Buffer {
 
 /** Parse a 16 kHz mono 16-bit WAV; returns seconds and RMS, or null. */
 function inspectWav(buf: Buffer): { seconds: number; rms: number } | null {
-  if (buf.length < 44 || buf.toString("ascii", 0, 4) !== "RIFF" || buf.toString("ascii", 8, 12) !== "WAVE") {
+  if (
+    buf.length < 44 ||
+    buf.toString("ascii", 0, 4) !== "RIFF" ||
+    buf.toString("ascii", 8, 12) !== "WAVE"
+  ) {
     return null;
   }
   const channels = buf.readUInt16LE(22);
@@ -289,7 +301,10 @@ class MockAgent {
     this.clips.clear();
     this.touch();
     this.event("session.started");
-    const r = reply("greeting", DEMO[lang].greeting, { options: DEMO[lang].options, listen_next: true });
+    const r = reply("greeting", DEMO[lang].greeting, {
+      options: DEMO[lang].options,
+      listen_next: true,
+    });
     return this.speak(r);
   }
 
@@ -389,10 +404,11 @@ async function readJson<T>(req: IncomingMessage): Promise<T> {
   }
 }
 
-function send(res: ServerResponse, status: number, body: unknown): void {
+function send(res: ServerResponse, status: number, body: unknown): true {
   const s = JSON.stringify(body);
   res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
   res.end(s);
+  return true;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -423,8 +439,7 @@ export function deviceApiMock(): Plugin {
     if (path === "/__mock/button" && req.method === "POST") {
       if (agent.session.id) throw new HttpError(409, "bad_state", "session active");
       agent.begin("hi");
-      send(res, 200, { ok: true });
-      return true;
+      return send(res, 200, { ok: true });
     }
     if (!path.startsWith("/api/v1/")) return false;
     const p = path.slice("/api/v1".length);
@@ -432,9 +447,9 @@ export function deviceApiMock(): Plugin {
       throw new HttpError(403, "bad_request", "missing X-JS-Kiosk header");
     }
 
-    if (req.method === "GET" && p === "/status") return send(res, 200, agent.status()), true;
+    if (req.method === "GET" && p === "/status") return send(res, 200, agent.status());
     if (req.method === "GET" && p === "/health") {
-      return send(res, 200, { overall: agent.status().overall, components: [] }), true;
+      return send(res, 200, { overall: agent.status().overall, components: [] });
     }
     if (req.method === "GET" && p === "/events") {
       if (!agent.addSse(res)) throw new HttpError(503, "unavailable", "too many subscribers");
@@ -447,11 +462,11 @@ export function deviceApiMock(): Plugin {
       return true;
     }
     if (req.method === "POST" && p === "/session/start") {
-      if (!CAPS.sim_button) throw new HttpError(403, "button_disabled", "simulated button disabled");
+      if (!CAPS.sim_button)
+        throw new HttpError(403, "button_disabled", "simulated button disabled");
       if (agent.session.id) throw new HttpError(409, "bad_state", "session already active");
       const b = await readJson<{ language?: Lang }>(req);
-      send(res, 200, agent.begin(b.language === "en" ? "en" : "hi"));
-      return true;
+      return send(res, 200, agent.begin(b.language === "en" ? "en" : "hi"));
     }
 
     const audio = /^\/session\/([^/]+)\/audio\/(\d+)\.wav$/.exec(p);
@@ -459,7 +474,11 @@ export function deviceApiMock(): Plugin {
       requireSession(decodeURIComponent(audio[1] ?? ""));
       const clip = agent.clip(Number(audio[2]));
       if (!clip) throw new HttpError(404, "bad_request", "clip not found");
-      res.writeHead(200, { "Content-Type": "audio/wav", "Content-Length": clip.length, "Cache-Control": "no-store" });
+      res.writeHead(200, {
+        "Content-Type": "audio/wav",
+        "Content-Length": clip.length,
+        "Cache-Control": "no-store",
+      });
       res.end(clip);
       return true;
     }
@@ -475,52 +494,70 @@ export function deviceApiMock(): Plugin {
     switch (action) {
       case "listen":
         if (!CAPS.voice_input) throw new HttpError(503, "unavailable", "voice input unavailable");
-        if (act !== "READY" && act !== "LISTENING") throw new HttpError(409, "bad_state", `cannot listen in ${act}`);
+        if (act !== "READY" && act !== "LISTENING")
+          throw new HttpError(409, "bad_state", `cannot listen in ${act}`);
         agent.touch();
         agent.setActivity("LISTENING");
-        return send(res, 200, { session: agent.status().session }), true;
+        return send(res, 200, { session: agent.status().session });
       case "audio": {
         if (act !== "LISTENING") throw new HttpError(409, "bad_state", `not listening (${act})`);
         const buf = await readBody(req, MAX_AUDIO);
         const info = inspectWav(buf);
-        if (!info || info.seconds > 20) throw new HttpError(400, "bad_audio", "expected 16 kHz mono 16-bit WAV ≤ 20 s");
+        if (!info || info.seconds > 20)
+          throw new HttpError(400, "bad_audio", "expected 16 kHz mono 16-bit WAV ≤ 20 s");
         const silent = info.rms < 0.003;
-        const transcript = { text: silent ? "" : `(डेमो) ${info.seconds.toFixed(1)}s`, confidence: silent ? 0 : 0.5, no_speech: silent };
-        return send(res, 200, await turn(lang, { seconds: info.seconds, silent }, transcript)), true;
+        const transcript = {
+          text: silent ? "" : `(डेमो) ${info.seconds.toFixed(1)}s`,
+          confidence: silent ? 0 : 0.5,
+          no_speech: silent,
+        };
+        return send(res, 200, await turn(lang, { seconds: info.seconds, silent }, transcript));
       }
       case "text": {
         const b = await readJson<{ text?: string }>(req);
         const text = (b.text ?? "").trim();
-        if (!text || [...text].length > 500) throw new HttpError(400, "bad_request", "text must be 1–500 chars");
+        if (!text || [...text].length > 500)
+          throw new HttpError(400, "bad_request", "text must be 1–500 chars");
         if (act === "PROCESSING") throw new HttpError(409, "bad_state", "busy");
-        return send(res, 200, await turn(lang, { text })), true;
+        return send(res, 200, await turn(lang, { text }));
       }
       case "option": {
         const b = await readJson<{ option_id?: string }>(req);
         if (!b.option_id) throw new HttpError(400, "bad_request", "option_id required");
         if (act === "PROCESSING") throw new HttpError(409, "bad_state", "busy");
-        return send(res, 200, await turn(lang, { option: b.option_id })), true;
+        return send(res, 200, await turn(lang, { option: b.option_id }));
       }
       case "speaking-done":
         if (act !== "SPEAKING") throw new HttpError(409, "bad_state", `not speaking (${act})`);
         agent.speakingDone();
-        return send(res, 200, { session: agent.status().session }), true;
+        return send(res, 200, { session: agent.status().session });
       case "language": {
         const b = await readJson<{ language?: string }>(req);
-        if (b.language !== "hi" && b.language !== "en") throw new HttpError(400, "bad_request", "language must be hi or en");
+        if (b.language !== "hi" && b.language !== "en")
+          throw new HttpError(400, "bad_request", "language must be hi or en");
         agent.session.language = b.language;
         agent.touch();
         agent.emit("session", { type: "session.language", session: agent.status().session });
-        return send(res, 200, { session: agent.status().session }), true;
+        return send(res, 200, { session: agent.status().session });
+      }
+      case "greeting": {
+        if (act === "PROCESSING") throw new HttpError(409, "bad_state", "busy");
+        if (act === "LISTENING") agent.setActivity("READY");
+        agent.touch();
+        const r = reply("greeting", DEMO[lang].greeting, {
+          options: DEMO[lang].options,
+          listen_next: true,
+        });
+        return send(res, 200, agent.speak(r));
       }
       case "touch":
         agent.touch();
-        return send(res, 200, { session: agent.status().session }), true;
+        return send(res, 200, { session: agent.status().session });
       case "end": {
+        // No audio_url: the agent drops a session's clips when it ends.
         const r = reply("goodbye", DEMO[lang].bye, { end_session: true });
-        const audio_url = CAPS.voice_output ? undefined : undefined; // agent drops clips at end
         agent.finish("citizen_ended");
-        return send(res, 200, { session: agent.status().session, reply: r, audio_url }), true;
+        return send(res, 200, { session: agent.status().session, reply: r });
       }
       default:
         throw new HttpError(404, "bad_request", "unknown endpoint");

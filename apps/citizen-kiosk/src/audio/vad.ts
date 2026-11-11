@@ -74,7 +74,7 @@ export class EnergyVad {
   /** Level of the last frame, 0..1, for a UI meter. */
   get level(): number {
     const l = (this.lastDb + 60) / 50;
-    return l < 0 ? 0 : l > 1 ? 1 : l;
+    return Math.min(1, Math.max(0, l));
   }
 
   /** Feed samples; returns the end reason once recording should stop. */
@@ -117,7 +117,8 @@ export class EnergyVad {
       this.loudRun = 0;
       if (this.speechStarted) this.silentMs += this.o.frameMs;
       // Track the noise floor only on quiet frames: fall fast, rise slowly.
-      this.floorDb = db < this.floorDb ? 0.7 * this.floorDb + 0.3 * db : 0.98 * this.floorDb + 0.02 * db;
+      this.floorDb =
+        db < this.floorDb ? 0.7 * this.floorDb + 0.3 * db : 0.98 * this.floorDb + 0.02 * db;
     }
 
     const elapsed = this.elapsedMs;

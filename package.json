@@ -2,9 +2,12 @@
   "name": "jan-sahayak",
   "private": true,
   "packageManager": "pnpm@11.20.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev:kiosk": "pnpm --filter citizen-kiosk dev",
+    "dev:kiosk:mock": "pnpm --filter citizen-kiosk dev:mock",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",

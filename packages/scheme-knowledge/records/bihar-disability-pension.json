@@ -1,0 +1,119 @@
+{
+  "id": "bihar-disability-pension",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "बिहार राज्य निःशक्तता पेंशन योजना",
+    "en": "Bihar State Disability Pension Scheme (Bihar Rajya Nishaktata Pension)"
+  },
+  "aliases": [
+    "विकलांग पेंशन",
+    "दिव्यांग पेंशन",
+    "निःशक्तता पेंशन",
+    "viklang pension",
+    "divyang pension",
+    "disability pension bihar",
+    "nishaktata pension",
+    "handicap pension"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार",
+    "en": "Social Welfare Department, Government of Bihar"
+  },
+  "category": "disability",
+  "keywords": [
+    "विकलांग",
+    "दिव्यांग",
+    "पेंशन",
+    "40 प्रतिशत",
+    "disability",
+    "divyang",
+    "pension"
+  ],
+  "summary": {
+    "hi": "बिहार राज्य निःशक्तता पेंशन योजना 40 प्रतिशत या उससे ज़्यादा दिव्यांगता वाले लोगों को हर महीने पेंशन देती है। इसमें उम्र और आय की कोई सीमा नहीं है।",
+    "en": "The Bihar State Disability Pension gives a monthly pension to persons with 40% or more disability. There is no age or income limit."
+  },
+  "eligibility": [
+    {
+      "hi": "40 प्रतिशत या उससे ज़्यादा दिव्यांगता।",
+      "en": "Disability of 40% or more."
+    },
+    {
+      "hi": "उम्र की कोई सीमा नहीं; आय की कोई सीमा नहीं।",
+      "en": "No age limit; no income limit."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार बिहार में 10 साल का निवास।",
+      "en": "Per the RTPS list, 10 years of residence in Bihar."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "हर महीने पेंशन। (राशि की पुष्टि होनी बाकी है।)",
+      "en": "A monthly pension. (Amount pending confirmation.)"
+    }
+  ],
+  "questions": [
+    {
+      "id": "disability_40_plus",
+      "ask": {
+        "hi": "क्या दिव्यांगता 40 प्रतिशत या उससे ज़्यादा है (दिव्यांगता प्रमाण पत्र के अनुसार)?",
+        "en": "Is the disability 40% or more (as per a disability certificate)?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "40 प्रतिशत या उससे ज़्यादा दिव्यांगता का प्रमाण पत्र",
+        "en": "Certificate of 40% or more disability"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में आवेदन प्रखंड कार्यालय के RTPS काउंटर पर जमा करें।",
+      "en": "Submit the application in the prescribed form at the block office RTPS counter."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार प्रखंड विकास पदाधिकारी 21 कार्य दिवस में निर्णय देते हैं; अपील अनुमंडल पदाधिकारी के पास।",
+      "en": "Per the RTPS list, the Block Development Officer decides within 21 working days; appeal lies with the Sub-Division Officer."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "exceptions": [
+    {
+      "hi": "80 प्रतिशत या उससे ज़्यादा दिव्यांगता वाले BPL परिवार के 18–79 साल के लोगों के लिए इंदिरा गांधी राष्ट्रीय निःशक्तता पेंशन भी RTPS सूची में है।",
+      "en": "The RTPS list also has the Indira Gandhi National Disability Pension for BPL persons aged 18–79 with 80% or more disability."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_SWD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of Social Welfare Department (SWD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Bihar Disability Pension | Disability Percent: >= 40%, Age: No Limit, Income: No Limit, Residence: 10 years | 40 % or more Disability Certificate ... Indira Gandhi National Disability Pension | Disability Percent: >= 80%, Age: 18-79 years, Income: BPL ... (table reading, English page; row 1 covers all its sub-services incl. Bihar Disability Pension) S. N. | Service | Sub-Service | ... | Designated Public Servant (Working Days) | Appellate Authority (Working Days) | Reviewing Authority (Working Days) ... 1. | Social Security Pension Scheme | ... | Block Development Officer (21) | Sub-Division Officer (15) | District Magistrate (15)"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/5408a16e-18d6-4096-9e5b-2fb316250c46.pdf",
+      "title": "Social Welfare Department, Bihar — बिहार निःशक्तता पेंशन योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of section 3) किसी भी आयु एवं आय वर्ग के 40 प्रतिशत या उससे अधिक दिव्यांगता वाले निःशक्त व्यक्ति इस योजना के तहत आच्छादित होंगे।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT OMITTED: SW PDF (uploaded Apr 2024) says ₹400/month; Bihar reportedly raised social security pensions to ₹1100 from June 2025 (state portal confirms only for MVPY) — confirm before adding. Confirm which authority issues the disability certificate accepted (e.g. UDID / medical board) — not stated in the fetched sources, so not added. Residence period (10 years) only from the undated RTPS table. SW PDF text garbled; Hindi fields are drafter translations. Category set to 'disability' (could also be 'pension'). Review fix 2026-11-09 (correctness finding 4): re-fetched the RTPS SWD PDF; the 21-working-day BDO timeline and SDO appeal are now quoted from row 1 (Social Security Pension Scheme), which lists Bihar Disability Pension as a sub-service."
+  }
+}

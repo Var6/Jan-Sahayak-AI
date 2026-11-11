@@ -67,7 +67,12 @@ export function LanguageScreen({ ctl }: { ctl: KioskController }) {
         </span>
       </h1>
       <div className="langs">
-        <button type="button" className="btn btn--lang btn--primary" lang="hi" onClick={() => choose("hi")}>
+        <button
+          type="button"
+          className="btn btn--lang btn--primary"
+          lang="hi"
+          onClick={() => choose("hi")}
+        >
           हिन्दी
         </button>
         <button type="button" className="btn btn--lang" lang="en" onClick={() => choose("en")}>
@@ -88,7 +93,11 @@ export function Privacy({ state, ctl }: { state: UiState; ctl: KioskController }
           <li key={line}>{line}</li>
         ))}
       </ul>
-      <button type="button" className="btn btn--primary btn--wide" onClick={() => void ctl.ackPrivacy()}>
+      <button
+        type="button"
+        className="btn btn--primary btn--wide"
+        onClick={() => void ctl.ackPrivacy()}
+      >
         {s.continue}
       </button>
     </main>

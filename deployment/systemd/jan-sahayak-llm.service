@@ -1,0 +1,70 @@
+# llama.cpp llama-server with Gemma 4 E2B-it Q4_0 on 127.0.0.1:8742.
+# Flags from docs/LOCAL_AI_MODELS.md (Pi 5 8 GB). The agent works without it
+# (deterministic answers) and skips calls while this unit is down.
+# --no-webui: no browser UI on the port. --api-key-file: only callers with
+# the key (the device agent) may use the model; the kiosk browser and other
+# local users cannot (both flags checked against llama-server --help,
+# llama.cpp build 12110). /health stays public for the agent's probe.
+# Restart policy: never give up. StartLimitIntervalSec=0 disables the start
+# rate limit, so a persistent startup error (GPIO not ready, DB permissions,
+# a bad model file) keeps being retried every RestartSec instead of leaving
+# the unit failed until someone reboots the kiosk. Pi OS bookworm ships
+# systemd 252, which has no RestartSteps/RestartMaxDelaySec, so the delay is
+# a modest fixed 5 s.
+[Unit]
+Description=Jan Sahayak local LLM (llama-server)
+After=local-fs.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jansahayak-ai
+Group=jansahayak-ai
+ExecStart=/opt/jan-sahayak/bin/llama-server -m /opt/jan-sahayak/models/llm/gemma-4-E2B-it-Q4_0.gguf \
+  -c 4096 -np 1 -t 4 -tb 4 -fa on --reasoning off -lm mmap+mlock \
+  --spec-type draft-mtp -md /opt/jan-sahayak/models/llm/mtp-gemma-4-E2B-it-Q4_0.gguf \
+  --cache-reuse 256 --host 127.0.0.1 --port 8742 \
+  --no-webui --api-key-file %d/llm-api-key
+LoadCredential=llm-api-key:/etc/jan-sahayak/llm-api-key
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+LimitMEMLOCK=infinity
+MemoryHigh=2300M
+MemoryMax=2560M
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=256
+Nice=5
+UMask=0077
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @swap @reboot @debug
+# mlock needs CAP_IPC_LOCK when the limit is not enough on its own.
+CapabilityBoundingSet=CAP_IPC_LOCK
+AmbientCapabilities=CAP_IPC_LOCK
+
+[Install]
+WantedBy=multi-user.target

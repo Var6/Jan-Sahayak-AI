@@ -6,3 +6,5 @@ github.com/k2-fsa/sherpa-onnx-go-windows/v2 v2.0.1 h1:eGSMUAEedupoBuAIOi75tJ3/25
 github.com/k2-fsa/sherpa-onnx-go-windows/v2 v2.0.1/go.mod h1:4T8q8/N4uaTxf7acMYaJrafG69HJRdlDRDstAODHz2Q=
 github.com/k2-fsa/sherpa-onnx-go/v2 v2.0.1 h1:mnVi3YOMc49PfZ7nJ7I/1WGevmseMjAQdtD/7MsRwb4=
 github.com/k2-fsa/sherpa-onnx-go/v2 v2.0.1/go.mod h1:MDprYfx0mHgBp2rAdLIfafqdDD+ugPWbR1lYsOKxBfs=
+go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
+go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=

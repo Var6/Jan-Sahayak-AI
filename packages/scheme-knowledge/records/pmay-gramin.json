@@ -1,0 +1,137 @@
+{
+  "id": "pmay-gramin",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "प्रधानमंत्री आवास योजना — ग्रामीण (PMAY-G)",
+    "en": "Pradhan Mantri Awaas Yojana — Gramin (PMAY-G)"
+  },
+  "aliases": [
+    "प्रधानमंत्री आवास योजना",
+    "पीएम आवास",
+    "आवास योजना",
+    "ग्रामीण आवास",
+    "इंदिरा आवास",
+    "PMAY G",
+    "pm awas yojana",
+    "awas yojana gramin",
+    "pakka ghar yojana",
+    "घर बनाने के लिए पैसा"
+  ],
+  "state": "",
+  "department": {
+    "hi": "ग्रामीण विकास मंत्रालय, भारत सरकार (राज्य में ग्रामीण विकास विभाग)",
+    "en": "Ministry of Rural Development, Government of India (implemented by the State Rural Development Department)"
+  },
+  "category": "housing",
+  "keywords": [
+    "घर",
+    "मकान",
+    "आवास",
+    "पक्का घर",
+    "कच्चा घर",
+    "house",
+    "housing",
+    "awaas",
+    "rural"
+  ],
+  "summary": {
+    "hi": "PMAY-G में गाँव के बेघर परिवारों और कच्चे/जर्जर घर में रहने वाले परिवारों को पक्का घर बनाने के लिए आर्थिक सहायता मिलती है। लाभार्थी SECC-2011 और आवास+ सर्वे की सूची से चुने जाते हैं और ग्राम सभा सत्यापन करती है।",
+    "en": "PMAY-G gives financial assistance to rural houseless households and those living in kutcha or dilapidated houses to build a pucca house. Beneficiaries are selected from SECC-2011 and Awaas+ survey lists and verified by the Gram Sabha."
+  },
+  "eligibility": [
+    {
+      "hi": "गाँव में रहने वाले बेघर परिवार, या शून्य/एक/दो कमरे के कच्चे घर में रहने वाले परिवार।",
+      "en": "Rural households that are houseless or live in zero/one/two-room kutcha houses."
+    },
+    {
+      "hi": "चयन SECC-2011 के आवास-अभाव और सामाजिक वंचना के मानकों तथा अंतिम आवास+ सूची के आधार पर होता है, और ग्राम सभा सत्यापन करती है।",
+      "en": "Selection is based on SECC-2011 housing-deprivation and social-deprivation parameters and finalised Awaas+ lists, verified by the Gram Sabha."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "मैदानी इलाकों में ₹1.20 लाख की सहायता (पहाड़ी राज्यों, पूर्वोत्तर, कठिन क्षेत्रों और IAP ज़िलों में ₹1.30 लाख)।",
+      "en": "Unit assistance of ₹1.20 lakh in plains (₹1.30 lakh in hill states, North-East, difficult areas and IAP districts)."
+    },
+    {
+      "hi": "मनरेगा से घर बनाने के लिए 90/95 दिन की अकुशल मज़दूरी, सहायता राशि के अलावा।",
+      "en": "90/95 person-days of unskilled wage work under MGNREGS for building the house, over and above the unit assistance."
+    },
+    {
+      "hi": "शौचालय के लिए ₹12,000 की सहायता स्वच्छ भारत मिशन-ग्रामीण, मनरेगा या अन्य स्रोत से।",
+      "en": "₹12,000 for a toilet through convergence with SBM-G, MGNREGS or another source."
+    },
+    {
+      "hi": "चाहें तो वित्तीय संस्थानों से ₹70,000 तक का ऋण लेने में मदद।",
+      "en": "If the beneficiary wishes, facilitation of a loan of up to ₹70,000 from financial institutions."
+    }
+  ],
+  "questions": [
+    {
+      "id": "rural_resident",
+      "ask": {
+        "hi": "क्या आप गाँव (ग्रामीण क्षेत्र) में रहते हैं?",
+        "en": "Do you live in a rural area (village)?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "houseless_or_kutcha",
+      "ask": {
+        "hi": "क्या आपके पास घर नहीं है, या आप कच्चे/टूटे-फूटे घर में रहते हैं?",
+        "en": "Are you houseless, or living in a kutcha or dilapidated house?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "PMAY-G में अलग से आवेदन फॉर्म नहीं भरा जाता; लाभार्थी SECC-2011 डेटा और आवास+ सर्वे की सूची से चुने जाते हैं और ग्राम सभा सत्यापन करती है।",
+      "en": "There is no separate application form; beneficiaries are taken from SECC-2011 data and Awaas+ survey lists and verified by the Gram Sabha."
+    },
+    {
+      "hi": "अपना नाम सूची में है या नहीं, यह जानने के लिए पंचायत / प्रखंड कार्यालय में पूछें या pmayg.dord.gov.in पर देखें।",
+      "en": "To check whether your name is on the list, ask at the panchayat / block office or check pmayg.dord.gov.in."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ग्राम पंचायत / प्रखंड कार्यालय (प्रखंड विकास पदाधिकारी)",
+      "en": "Gram Panchayat / block office (Block Development Officer)"
+    },
+    {
+      "hi": "ऑनलाइन जानकारी: pmayg.dord.gov.in",
+      "en": "Online information: pmayg.dord.gov.in"
+    }
+  ],
+  "official_url": "https://pmayg.dord.gov.in/",
+  "exceptions": [
+    {
+      "hi": "पक्के घर वाले परिवार और स्वतः बाहर होने वाले परिवार (जैसे मोटर वाहन/नाव, ₹50,000 या ज़्यादा सीमा वाला किसान क्रेडिट कार्ड, फ्रिज या लैंडलाइन फोन वाले) योग्य नहीं हैं।",
+      "en": "Households in pucca houses and automatically excluded households (e.g. owning a motorised vehicle/boat, a Kisan Credit Card with limit of ₹50,000 or more, a refrigerator or a landline phone) are not eligible."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://pmayg.dord.gov.in/netiayHome/Uploaded/Guidelines-English_Book_Final.pdf",
+      "title": "Framework for Implementation of PMAY-G (2022)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "The unit assistance has been increased from Rs. 70,000 to Rs. 1.20 lakh in plains and from Rs 75,000 to Rs.1.30 lakh in Hillstates/UTs of J&K and Ladakh, North Eastern States, difficult areas and IAP/worst affected Left-Wing Extremism (LWE) districts. The beneficiary is entitled to 90/95 person days of unskilled labour from MGNREGS. ... Identification and selection of beneficiaries, based on the housing deficiency and other social deprivation parameters in SECC-2011 data and finalised Awaas+ lists, and verified by the respective Gram Sabhas. ... e. Provision of assistance (Rs.12,000/-) for toilets through convergence with Swachh Bharat Mission – Gramin (SBM-G), MGNREGS or any other dedicated source of funding. ... If the beneficiary so chooses, he/she will be facilitated to avail loan of up to Rs.70,000/- from Financial Institutions. ... (Annexure-I) Step 1: Exclusion of pucca houses- All households living in houses with pucca roof and/or pucca wall ... are filtered out. Step 2: Automatic Exclusion ... Motorised two/three/four-wheeler/ fishing boat ... Kisan Credit Card with credit limit of Rs.50,000 or above ... Own a refrigerator ... Own landline phone"
+    },
+    {
+      "url": "https://pmayg.dord.gov.in/",
+      "title": "PMAY-G portal — home page",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Additional time to complete the Awaas+ 2024 household Survey 23/09/2026 ... Guidelines and SOP for deletion of ineligible households identified during the Survey 28/08/2026"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. The 2022 Framework describes the 2016-17 to 2023-24 phase (target 2.95 crore houses by March 2024). The scheme has continued with an Awaas+ 2024 survey (portal notices, 2026), and eligibility/exclusion criteria may have been revised for the new phase — the 2024 criteria were NOT fetched. Confirm unit assistance amounts (₹1.20/1.30 lakh), toilet amount and loan facilitation for the current phase. Exclusion examples are from Annexure-I of the 2022 Framework (partial list). No helpline was confirmed. Whether the Awaas+ 2024 survey is still open in Bihar is not confirmed. Review fix 2026-11-09 (correctness finding 4): re-fetched the 2022 Framework PDF; toilet ₹12,000 (scheme features, item e), loan up to ₹70,000 (para i) and the Annexure-I exclusions (pucca house, vehicle/boat, KCC ≥ ₹50,000, refrigerator, landline) are now quoted. Still from the 2016-17 to 2023-24 Framework."
+  }
+}

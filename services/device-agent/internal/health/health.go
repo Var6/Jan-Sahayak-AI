@@ -8,7 +8,6 @@ package health
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -218,7 +217,10 @@ func (m *Monitor) runOne(ctx context.Context, name string) {
 func safeCheck(ctx context.Context, fn CheckFunc) (r Result) {
 	defer func() {
 		if p := recover(); p != nil {
-			r = Result{State: Unavailable, Detail: fmt.Sprintf("check panicked: %v", p)}
+			// Fixed reason code: details can reach the central server, so
+			// no free text (the panic value) goes into them.
+			_ = p
+			r = Result{State: Unavailable, Detail: "check_panicked"}
 		}
 	}()
 	return fn(ctx)

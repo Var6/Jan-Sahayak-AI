@@ -3,7 +3,10 @@
 Machine-readable registry: `models/manifests/models.json`.
 Installer: `scripts/models/install.sh <dev-mac|pi5>` (`--verify` to check).
 Weights live in `models/weights/` (git-ignored). Nothing downloads at app
-startup.
+startup. Every file has a pinned SHA-256 — archive members too (the
+Supertonic members were hashed from the copy extracted from the
+SHA-verified archive) — and `--verify` re-hashes all of them (15/15 ok on
+2026-11-09).
 
 Status values: NOT INSTALLED · DOWNLOADED · INSTALLED · TESTED · FAILED.
 

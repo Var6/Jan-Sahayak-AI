@@ -1,0 +1,141 @@
+{
+  "id": "bihar-national-family-benefit",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "राष्ट्रीय पारिवारिक लाभ योजना (बिहार)",
+    "en": "National Family Benefit Scheme (Bihar)"
+  },
+  "aliases": [
+    "राष्ट्रीय परिवार लाभ योजना",
+    "पारिवारिक लाभ योजना",
+    "परिवार लाभ",
+    "NFBS",
+    "rashtriya parivar labh yojana",
+    "parivarik labh yojana",
+    "family benefit scheme",
+    "कमाने वाले की मृत्यु पर सहायता"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार (राष्ट्रीय सामाजिक सहायता कार्यक्रम)",
+    "en": "Social Welfare Department, Government of Bihar (National Social Assistance Programme)"
+  },
+  "category": "pension",
+  "keywords": [
+    "मृत्यु",
+    "कमाने वाला",
+    "परिवार",
+    "सहायता",
+    "बीपीएल",
+    "death",
+    "breadwinner",
+    "family benefit",
+    "BPL"
+  ],
+  "summary": {
+    "hi": "BPL परिवार के मुख्य कमाने वाले सदस्य (18–60 साल) की असमय मृत्यु होने पर परिवार को एक बार आर्थिक सहायता मिलती है।",
+    "en": "One-time financial assistance to a BPL family when its main breadwinner (aged 18–60) dies."
+  },
+  "eligibility": [
+    {
+      "hi": "परिवार BPL हो।",
+      "en": "The family is BPL."
+    },
+    {
+      "hi": "मृत्यु परिवार के मुख्य कमाने वाले सदस्य की हुई हो, जिसकी उम्र 18 से 60 साल के बीच थी।",
+      "en": "The deceased was the family's main breadwinner, aged between 18 and 60."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "परिवार के नज़दीकी आश्रित को एकमुश्त ₹20,000 की सहायता।",
+      "en": "One-time assistance of ₹20,000 to the nearest dependant."
+    }
+  ],
+  "questions": [
+    {
+      "id": "breadwinner_died",
+      "ask": {
+        "hi": "क्या परिवार के मुख्य कमाने वाले सदस्य की मृत्यु हुई है?",
+        "en": "Has the family's main earning member died?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "deceased_age_18_60",
+      "ask": {
+        "hi": "क्या मृत्यु के समय उनकी उम्र 18 से 60 साल के बीच थी?",
+        "en": "Was their age between 18 and 60 at the time of death?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "is_bpl",
+      "ask": {
+        "hi": "क्या परिवार BPL सूची में है?",
+        "en": "Is the family on the BPL list?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "मृत्यु प्रमाण पत्र",
+        "en": "Death certificate"
+      }
+    },
+    {
+      "name": {
+        "hi": "ज़मीन से जुड़ा प्रमाण पत्र या आवासीय प्रमाण पत्र",
+        "en": "Land-related certificate or residence certificate"
+      }
+    },
+    {
+      "name": {
+        "hi": "BPL प्रमाण पत्र",
+        "en": "BPL certificate"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में आवेदन प्रखंड कार्यालय के RTPS काउंटर पर जमा करें।",
+      "en": "Submit the application in the prescribed form at the block office RTPS counter."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार प्रखंड विकास पदाधिकारी 21 कार्य दिवस में निर्णय देते हैं; अपील अनुमंडल पदाधिकारी के पास।",
+      "en": "Per the RTPS list, the Block Development Officer decides within 21 working days; appeal lies with the Sub-Division Officer."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_SWD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of Social Welfare Department (SWD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "3. National Family Benefit Scheme | Age of Earning Person: 18-59 years, Income: BPL | 1. Death Certificate 2. Certificate related to Land or Residence Certificate 3. BPL Certificate | Block Development Officer (21)"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/603e4ef2-41c8-4888-9763-c7b92a331faf.pdf",
+      "title": "Social Welfare Department, Bihar — राष्ट्रीय पारिवारिक लाभ योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of sections 3–4) राष्ट्रीय पारिवारिक लाभ योजना अन्तर्गत पात्र लाभुकों के आश्रित को एकमुश्त रू0 20000/- की सहायता दी जाती है। ... बी0पी0एल0 परिवार के 18-60 वर्ष आयु वर्ग के कमाऊ सदस्य (Bread winner) की आकस्मिक मृत्यु पर उसके शोक-संतप्त परिवार को अनुदान देय होगा।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT (₹20,000) is from the SW scheme note uploaded Apr 2024 — confirm it is current (amounts change). Sources DISAGREE on age: RTPS table says 18-59, SW note says 18-60; record uses 18–60 from the newer SW note — reviewer must decide. Any time limit for applying after the death is not stated in the fetched sources. SW PDF text is garbled; Hindi fields are drafter translations. Note: the betastate listing has a separate 'Chief Minister Family Benefit Scheme' — not drafted here."
+  }
+}

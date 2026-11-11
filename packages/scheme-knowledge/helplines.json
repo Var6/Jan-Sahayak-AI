@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "helplines": [
+    {
+      "id": "erss-112",
+      "number": "112",
+      "name": { "hi": "आपातकालीन सहायता (112)", "en": "Emergency Response Support System (ERSS-112)" },
+      "purpose": {
+        "hi": "हर तरह की आपात स्थिति — पुलिस, आग, एम्बुलेंस — के लिए एक ही नंबर। कॉल, SMS, ईमेल, SOS या '112 India' ऐप से मदद माँगी जा सकती है।",
+        "en": "Single emergency number for all types of emergencies — police, fire, ambulance. Help can be sought by call, SMS, email, SOS or the '112 India' app."
+      },
+      "use_for": ["crisis", "emergency", "police", "fire", "ambulance"],
+      "scope": "national",
+      "source_url": "https://static.pib.gov.in/WriteReadData/specificdocs/documents/2025/mar/doc2025329529701.pdf",
+      "source_title": "PIB backgrounder (March 2025) — women's safety initiatives incl. ERSS-112",
+      "source_excerpt": "The Emergency Response Support System (ERSS) is an integrated emergency service launched by the Government of India with a single emergency number – 112 to handle all types of emergencies. ... system unifies all existing emergency numbers, including 100 (Police), 101 (Fire), 108 (Ambulance), and 181 (Women & Child Care), under 112 for seamless response.",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "112.gov.in timed out / refused connection from our network on 2026-11-09; confirmed only via PIB document. Reviewer should confirm 112 is operational in all Bihar districts."
+    },
+    {
+      "id": "women-helpline-181",
+      "number": "181",
+      "name": { "hi": "महिला हेल्पलाइन (181)", "en": "Women Helpline (181)" },
+      "purpose": {
+        "hi": "सार्वजनिक या निजी जगह पर हिंसा झेल रही महिलाओं के लिए 24 घंटे आपात और सहायता सेवा; पुलिस, अस्पताल, कानूनी सहायता से जोड़ती है।",
+        "en": "24/7 emergency and support service for women facing violence in public or private spaces; refers to police, hospitals and legal aid."
+      },
+      "use_for": ["crisis", "women", "domestic_violence"],
+      "scope": "national",
+      "source_url": "https://wcd.gov.in/",
+      "source_title": "Ministry of Women and Child Development — home page",
+      "source_excerpt": "Women Helpline Toll free No. - 181",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "Description (24/7, referrals) is from the PIB March 2025 backgrounder: 'Women Helpline 181 provides 24/7 emergency and support services for women facing violence in both public and private spaces ... it offers referrals to police, hospitals, legal aid'. Confirm Bihar's 181 operation and integration with 112."
+    },
+    {
+      "id": "child-helpline-1098",
+      "number": "1098",
+      "name": { "hi": "चाइल्ड हेल्पलाइन (1098)", "en": "Child Helpline (1098)" },
+      "purpose": {
+        "hi": "मुसीबत में फँसे बच्चों के लिए हेल्पलाइन (बाल श्रम, बाल विवाह, गुमशुदा बच्चे, शोषण)।",
+        "en": "Helpline for children in need of care and protection (child labour, child marriage, missing children, abuse)."
+      },
+      "use_for": ["crisis", "child"],
+      "scope": "national",
+      "source_url": "https://wcd.gov.in/",
+      "source_title": "Ministry of Women and Child Development — home page",
+      "source_excerpt": "Child Helpline Toll free No. - 1098",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "The official page fetched only states the number. The purpose text is a drafter summary; 24x7 operation and integration with ERSS-112 under Mission Vatsalya were seen only in secondary sources — reviewer must confirm from an official Mission Vatsalya document before adding '24x7'."
+    },
+    {
+      "id": "tele-manas-14416",
+      "number": "14416",
+      "alt_numbers": ["1800-89-14416"],
+      "name": { "hi": "टेली-मानस मानसिक स्वास्थ्य हेल्पलाइन (14416)", "en": "Tele-MANAS mental health helpline (14416)" },
+      "purpose": {
+        "hi": "मुफ्त, 24 घंटे मानसिक स्वास्थ्य सहायता (तनाव, उदासी, आत्महत्या के विचार) — 20 भारतीय भाषाओं में।",
+        "en": "Free, 24/7 mental health support (stress, distress, suicidal thoughts) in 20 Indian languages."
+      },
+      "use_for": ["crisis", "mental_health", "suicide"],
+      "scope": "national",
+      "source_url": "https://dghs.mohfw.gov.in/national-mental-health-programme.php",
+      "source_title": "DGHS, MoHFW — National Mental Health Programme",
+      "source_excerpt": "The public can access the Tele MANAS helpline by dialing toll-free helpline number 1800-89-14416 or short code 14416.",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "'Free, 24/7' and '20 Indian languages' are from the PIB February 2025 document (https://static.pib.gov.in/WriteReadData/specificdocs/documents/2025/feb/doc202527497201.pdf): 'Tele MANAS provides free, 24/7 mental health support ... (14416 / 1800-89-14416). Available in 20 Indian languages.' telemanas.mohfw.gov.in did not render without JavaScript."
+    },
+    {
+      "id": "nalsa-15100",
+      "number": "15100",
+      "name": { "hi": "राष्ट्रीय विधिक सेवा प्राधिकरण (NALSA) कानूनी सहायता हेल्पलाइन (15100)", "en": "NALSA legal aid helpline (15100)" },
+      "purpose": {
+        "hi": "मुफ्त कानूनी सहायता और सलाह के लिए राष्ट्रीय विधिक सेवा प्राधिकरण का टोल-फ्री नंबर।",
+        "en": "Toll-free number of the National Legal Services Authority for free legal aid and advice."
+      },
+      "use_for": ["legal_aid", "general_help"],
+      "scope": "national",
+      "source_url": "https://nalsa.gov.in/",
+      "source_title": "National Legal Services Authority — home page",
+      "source_excerpt": "15100 NALSA Helpline Toll-Free Number",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "Purpose wording is a drafter summary of NALSA's mandate; the page states only the number and label. Bihar State Legal Services Authority (BSLSA) contacts not added."
+    },
+    {
+      "id": "lpg-emergency-1906",
+      "number": "1906",
+      "name": { "hi": "LPG आपातकालीन हेल्पलाइन (1906)", "en": "LPG Emergency Helpline (1906)" },
+      "purpose": {
+        "hi": "गैस (LPG) रिसाव जैसी आपात स्थिति के लिए।",
+        "en": "For LPG emergencies such as a gas leak."
+      },
+      "use_for": ["emergency"],
+      "scope": "national",
+      "source_url": "https://www.pmuy.gov.in/about.html",
+      "source_title": "PMUY — Contact Us",
+      "source_excerpt": "1906 (LPG Emergency Helpline) 14428 (Toll Free Helpline) 14438 (Ujjwala Helpline)",
+      "accessed_on": "2026-11-09",
+      "status": "UNVERIFIED",
+      "notes": "'Gas leak' example is a drafter gloss on 'LPG Emergency Helpline'."
+    }
+  ]
+}

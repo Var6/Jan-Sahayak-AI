@@ -1,0 +1,154 @@
+{
+  "id": "bihar-swayam-sahayata-bhatta",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "मुख्यमंत्री निश्चय स्वयं सहायता भत्ता योजना",
+    "en": "Mukhyamantri Nishchay Swayam Sahayata Bhatta Yojana (MNSSBY)"
+  },
+  "aliases": [
+    "स्वयं सहायता भत्ता",
+    "बेरोजगारी भत्ता",
+    "बेरोज़गारी भत्ता",
+    "swayam sahayata bhatta",
+    "berojgari bhatta",
+    "unemployment allowance bihar",
+    "MNSSBY",
+    "निश्चय भत्ता"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "योजना एवं विकास विभाग, बिहार सरकार",
+    "en": "Planning and Development Department, Government of Bihar"
+  },
+  "category": "self_employment",
+  "keywords": [
+    "बेरोजगार",
+    "भत्ता",
+    "नौकरी",
+    "रोजगार",
+    "12वीं पास",
+    "unemployed",
+    "allowance",
+    "job search",
+    "DRCC",
+    "KYP"
+  ],
+  "summary": {
+    "hi": "बिहार के 20 से 25 साल के बेरोज़गार युवा, जो 12वीं पास हैं पर आगे पढ़ाई नहीं कर रहे, उन्हें रोज़गार खोजने के लिए हर महीने एक हज़ार रुपये, अधिकतम दो साल तक मिलते हैं।",
+    "en": "Unemployed Bihar youth aged 20–25 who have passed class 12 and are not in higher education get ₹1000 per month for up to two years while searching for work."
+  },
+  "eligibility": [
+    {
+      "hi": "बिहार का स्थायी निवासी, उम्र 20 से 25 साल।",
+      "en": "Permanent resident of Bihar, aged 20 to 25."
+    },
+    {
+      "hi": "राज्य में स्थित सरकारी मान्यता प्राप्त संस्थान से 12वीं (इंटर) पास, पर उच्च शिक्षा नहीं ली और अभी पढ़ाई नहीं कर रहे।",
+      "en": "Passed class 12 (intermediate) from a government-recognised institution in the state, with no higher education and not currently studying."
+    },
+    {
+      "hi": "बेरोज़गार हों, स्वरोज़गार न हो, और रोज़गार की तलाश में हों।",
+      "en": "Unemployed, not self-employed, and looking for work."
+    },
+    {
+      "hi": "किसी दूसरे सरकारी स्रोत से भत्ता / छात्रवृत्ति / स्टूडेंट क्रेडिट कार्ड / शिक्षा ऋण या कोई सरकारी सहायता न मिल रही हो, और कोई सरकारी या गैर-सरकारी नौकरी न हो।",
+      "en": "Not receiving any allowance / scholarship / student credit card / education loan or other government assistance, and not in any government or private employment."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "हर महीने एक हज़ार रुपये, अधिकतम दो साल तक।",
+      "en": "₹1000 per month for a maximum of two years."
+    }
+  ],
+  "age_rule": {
+    "hi": "20 से 25 साल",
+    "en": "20 to 25 years"
+  },
+  "questions": [
+    {
+      "id": "age_20_25",
+      "ask": {
+        "hi": "क्या आपकी उम्र 20 से 25 साल के बीच है?",
+        "en": "Is your age between 20 and 25?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "passed_12_in_bihar",
+      "ask": {
+        "hi": "क्या आपने बिहार से 12वीं पास की है और अभी आगे की पढ़ाई नहीं कर रहे?",
+        "en": "Did you pass class 12 in Bihar and are you not studying further now?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "has_job_or_support",
+      "ask": {
+        "hi": "क्या आपकी कोई नौकरी है या कोई सरकारी भत्ता/छात्रवृत्ति मिल रही है?",
+        "en": "Do you have a job or receive any government allowance/scholarship?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "7nishchay-yuvaupmission.bihar.gov.in पर New Registration करें और योजना चुनकर ऑनलाइन आवेदन भरें। ऑनलाइन आवेदन में कोई कागज़ अपलोड नहीं करना है।",
+      "en": "Register on 7nishchay-yuvaupmission.bihar.gov.in, choose the scheme and apply online. No documents are uploaded online."
+    },
+    {
+      "hi": "ऑनलाइन आवेदन के 60 दिनों के अंदर किसी भी कार्य दिवस पर ज़रूरी कागज़ों के साथ जिला निबंधन एवं परामर्श केंद्र (DRCC) जाकर सत्यापन कराएँ।",
+      "en": "Within 60 days of applying online, visit the District Registration and Counselling Centre (DRCC) on any working day with the required documents for verification."
+    },
+    {
+      "hi": "अपने बैंक खाते को आधार से सीड (जोड़) कराना सुनिश्चित करें।",
+      "en": "Make sure your bank account is seeded with Aadhaar."
+    },
+    {
+      "hi": "भत्ता पाने वालों के लिए कुशल युवा कार्यक्रम (भाषा, संवाद और बुनियादी कंप्यूटर) का प्रशिक्षण अनिवार्य है।",
+      "en": "Training under the Kushal Yuva Program (language, communication and basic computer skills) is mandatory for allowance beneficiaries."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: 7nishchay-yuvaupmission.bihar.gov.in",
+      "en": "Online: 7nishchay-yuvaupmission.bihar.gov.in"
+    },
+    {
+      "hi": "जिला निबंधन एवं परामर्श केंद्र (DRCC) — कागज़ों की जाँच के लिए",
+      "en": "District Registration and Counselling Centre (DRCC) — for document verification"
+    }
+  ],
+  "official_url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/",
+  "helpline": "18003456444",
+  "exceptions": [
+    {
+      "hi": "एक आवेदक \"आर्थिक हल, युवाओं को बल\" की केवल एक ही योजना का लाभ ले सकता है, पर भत्ता पाने वालों के लिए कुशल युवा कार्यक्रम का प्रशिक्षण ज़रूरी है।",
+      "en": "Only one scheme under \"Aarthik Hal, Yuvaon ko Bal\" can be availed, but KYP training is compulsory for allowance beneficiaries."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/",
+      "title": "Aarthik Hal Yuvaon ko Bal — home page",
+      "accessed_on": "2026-11-09",
+      "excerpt": "the unemployed permanent resident of Bihar state, who are in the age group of 20 to 25 years and have passed class 12th but not enrolled in any higher education, would be provided financial assistance of Rupees One Thousand per month for a maximum period of two years for searching for employment. ... Applicants of Mukhyamantri Nishchay Swayam Sahayata Bhata Yojana (MNSSBY) and Kushal Yuva Program (KYP) must visit to District Registration and Counseling Center (DRCC) within 60 days of online application"
+    },
+    {
+      "url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/faq",
+      "title": "Aarthik Hal Yuvaon ko Bal — FAQ",
+      "accessed_on": "2026-11-09",
+      "excerpt": "आवेदक को किसी अन्य सरकारी स्रोत से किसी भी प्रकार का भत्ता/छात्रवृति/स्टूडेंट क्रेडिट कार्ड/शिक्षा ऋण या किसी भी प्रकार का सरकारी सहायता प्राप्त नहीं हो ... ऑनलाईन आवेदन भरने के दौरान किसी भी दस्तावेज को अपलोड नही करना है। ... आवेदन संबंधी जानकारी “आर्थिक हल, युवाओं को बल” के वेब साईट http://www.7nishchay-yuvaupmission.bihar.gov.in एवं सुविधा केन्द्र के Toll Free Number. 18003456444 पर बात कर प्राप्त की जा सकती है।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT (₹1000/month, max 2 years) from the portal home page text — confirm current (a 'SHA Graduation Ghosna Patra' PDF on the guidelines page is image-only and may extend the scheme to graduates; not read). The list of documents to carry to the DRCC is not stated on the pages fetched; the original guideline PDF (Swayam_Sahayata_Bhatta_Yojana.pdf) is a scanned legacy-font document that extracts as gibberish — reviewer must read it. FAQ says DRCC hours 10am–6pm while the home notice says 10am–5pm; hours omitted. Department attribution (Planning & Development) is from the portal header listing three departments — confirm. Review fix 2026-11-09 (correctness finding 4): helpline 18003456444 is now quoted from this record's own FAQ source (FAQ Q9, re-fetched), not only from the student-credit-card record."
+  }
+}

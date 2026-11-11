@@ -1,0 +1,221 @@
+{
+  "id": "bihar-student-credit-card",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "बिहार स्टूडेंट क्रेडिट कार्ड योजना",
+    "en": "Bihar Student Credit Card Scheme (BSCC)"
+  },
+  "aliases": [
+    "स्टूडेंट क्रेडिट कार्ड",
+    "छात्र क्रेडिट कार्ड",
+    "student credit card",
+    "BSCC",
+    "padhai ke liye loan",
+    "पढ़ाई के लिए लोन",
+    "शिक्षा ऋण बिहार",
+    "education loan bihar",
+    "क्रेडिट कार्ड योजना"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "शिक्षा विभाग, बिहार सरकार (बिहार राज्य शिक्षा वित्त निगम)",
+    "en": "Education Department, Government of Bihar (Bihar State Education Finance Corporation)"
+  },
+  "category": "education",
+  "keywords": [
+    "पढ़ाई",
+    "लोन",
+    "ऋण",
+    "कॉलेज",
+    "उच्च शिक्षा",
+    "education loan",
+    "student",
+    "higher education",
+    "DRCC"
+  ],
+  "summary": {
+    "hi": "बिहार स्टूडेंट क्रेडिट कार्ड योजना में 12वीं पास बिहार के विद्यार्थियों को उच्च शिक्षा के लिए अधिकतम चार लाख रुपये तक का शिक्षा ऋण मिलता है। आवेदन ऑनलाइन होता है और कागज़ों की जाँच जिला निबंधन एवं परामर्श केंद्र (DRCC) पर होती है।",
+    "en": "Under BSCC, students from Bihar who have passed class 12 can get an education loan of up to ₹4 lakh for higher education. Apply online; documents are verified at the District Registration and Counselling Centre (DRCC)."
+  },
+  "eligibility": [
+    {
+      "hi": "आवेदक बिहार का निवासी हो और राज्य में स्थित सरकारी मान्यता प्राप्त संस्थान से 12वीं या समकक्ष पास हो।",
+      "en": "Resident of Bihar who passed class 12 or equivalent from a government-recognised institution in the state."
+    },
+    {
+      "hi": "मान्यता प्राप्त संस्थान में उच्च शिक्षा के लिए नामांकित हो या नामांकन के लिए चुना गया हो।",
+      "en": "Enrolled, or selected for enrolment, in higher education at a recognised institution."
+    },
+    {
+      "hi": "आवेदन की तारीख को उम्र 25 साल से ज़्यादा न हो (जिन स्नातकोत्तर कोर्स में स्नातक पास होना ज़रूरी है, उनके लिए अधिकतम 30 साल)।",
+      "en": "Not older than 25 on the date of application (30 for postgraduate courses that require a graduate degree)."
+    },
+    {
+      "hi": "किसी दूसरे स्रोत से भत्ता / छात्रवृत्ति / स्टूडेंट क्रेडिट कार्ड / शिक्षा ऋण न मिल रहा हो।",
+      "en": "Not receiving any allowance / scholarship / student credit card / education loan from another source."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "शिक्षा ऋण अधिकतम चार लाख रुपये तक।",
+      "en": "Education loan up to a maximum of ₹4 lakh."
+    },
+    {
+      "hi": "संशोधित दिशानिर्देश के अनुसार ऋण सभी आवेदकों को ब्याज मुक्त दिया जाता है।",
+      "en": "Per the revised guideline, the loan is interest-free for all applicants."
+    }
+  ],
+  "age_rule": {
+    "hi": "आवेदन की तारीख को 25 साल तक (कुछ स्नातकोत्तर कोर्स के लिए 30 साल तक)",
+    "en": "Up to 25 on the application date (up to 30 for certain postgraduate courses)"
+  },
+  "questions": [
+    {
+      "id": "passed_12_in_bihar",
+      "ask": {
+        "hi": "क्या आपने बिहार के किसी मान्यता प्राप्त संस्थान से 12वीं पास की है?",
+        "en": "Did you pass class 12 from a recognised institution in Bihar?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "age_25_or_less",
+      "ask": {
+        "hi": "क्या आपकी उम्र 25 साल या उससे कम है?",
+        "en": "Are you 25 or younger?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "other_govt_support",
+      "ask": {
+        "hi": "क्या आपको पहले से कोई छात्रवृत्ति, भत्ता या शिक्षा ऋण मिल रहा है?",
+        "en": "Do you already receive any scholarship, allowance or education loan?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "भरा हुआ कॉमन आवेदन फॉर्म",
+        "en": "Filled common application form"
+      }
+    },
+    {
+      "name": {
+        "hi": "आवेदक और सह-आवेदक का आधार कार्ड",
+        "en": "Aadhaar card of applicant and co-applicant"
+      }
+    },
+    {
+      "name": {
+        "hi": "विद्यार्थी और सह-आवेदक के पैन कार्ड की कॉपी",
+        "en": "Copy of PAN card of student and co-applicant"
+      }
+    },
+    {
+      "name": {
+        "hi": "10वीं और 12वीं का प्रमाण पत्र और अंकपत्र",
+        "en": "Class 10 and 12 certificates and marksheets"
+      }
+    },
+    {
+      "name": {
+        "hi": "नामांकन का प्रमाण, स्वीकृत कोर्स संरचना और फीस का विवरण",
+        "en": "Proof of admission, approved course structure and fee schedule"
+      }
+    },
+    {
+      "name": {
+        "hi": "विद्यार्थी / माता-पिता / गारंटर की 2 फोटो",
+        "en": "2 photographs of student / parents / guarantor"
+      }
+    },
+    {
+      "name": {
+        "hi": "पिछले साल का आय प्रमाण पत्र / फॉर्म 16, पिछले दो साल का आयकर रिटर्न, पिछले 6 महीने का बैंक स्टेटमेंट",
+        "en": "Last year's income certificate / Form 16, last two years' income tax returns, last 6 months' bank statement"
+      }
+    },
+    {
+      "name": {
+        "hi": "निवास का प्रमाण (पहचान पत्र / पासपोर्ट / वोटर आईडी / ड्राइविंग लाइसेंस)",
+        "en": "Proof of residence (ID / passport / voter ID / driving licence)"
+      }
+    }
+  ],
+  "optional_docs": [
+    {
+      "name": {
+        "hi": "छात्रवृत्ति आदि मिलने का पत्र (अगर हो)",
+        "en": "Letter conferring scholarship etc. (if available)"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "7nishchay-yuvaupmission.bihar.gov.in पर New Registration करें; मोबाइल और ईमेल पर OTP आएगा।",
+      "en": "Register (New Registration) on 7nishchay-yuvaupmission.bihar.gov.in; an OTP is sent to mobile and email."
+    },
+    {
+      "hi": "लॉगिन करके योजना में \"BSCC\" चुनें और आवेदन भरें। ऑनलाइन आवेदन के समय कोई कागज़ अपलोड नहीं करना है।",
+      "en": "Log in, choose \"BSCC\" and fill the application. No documents are uploaded while applying online."
+    },
+    {
+      "hi": "आवेदन के बाद स्व-अभिप्रमाणित कागज़ों के साथ जिला निबंधन एवं परामर्श केंद्र (DRCC) जाकर सत्यापन कराएँ।",
+      "en": "After applying, visit the District Registration and Counselling Centre (DRCC) with self-attested copies of documents for verification."
+    },
+    {
+      "hi": "स्वीकृति के बाद DRCC से स्टूडेंट क्रेडिट कार्ड और स्वीकृति पत्र मिलता है।",
+      "en": "After sanction, the student credit card and sanction letter are collected from the DRCC."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: 7nishchay-yuvaupmission.bihar.gov.in",
+      "en": "Online: 7nishchay-yuvaupmission.bihar.gov.in"
+    },
+    {
+      "hi": "जिला निबंधन एवं परामर्श केंद्र (DRCC) — कागज़ों की जाँच के लिए",
+      "en": "District Registration and Counselling Centre (DRCC) — for document verification"
+    }
+  ],
+  "official_url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/",
+  "helpline": "18003456444",
+  "exceptions": [
+    {
+      "hi": "एक आवेदक \"आर्थिक हल, युवाओं को बल\" की केवल एक ही योजना का लाभ ले सकता है।",
+      "en": "An applicant can avail only one scheme under \"Aarthik Hal, Yuvaon ko Bal\"."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/faq",
+      "title": "Aarthik Hal Yuvaon ko Bal — FAQ",
+      "accessed_on": "2026-11-09",
+      "excerpt": "आवेदक बिहार का निवासी हो एवं राज्य में अवस्थित सरकार द्वारा मान्यता प्राप्त किसी संस्थान से 12वीं अथवा समकक्ष परीक्षा उर्त्तीण हो। ... आवेदन की तिथि को आवेदक की आयु 25 वर्ष से अधिक नहीं हो। ... सुविधा केन्द्र के Toll Free Number. 18003456444 पर बात कर प्राप्त की जा सकती है।"
+    },
+    {
+      "url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/resources/New_Guideline_Final_Update1.pdf",
+      "title": "बिहार स्टूडेंट क्रेडिट कार्ड योजना (संशोधित) — guideline",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(decoded from legacy Kruti Dev font; verify against PDF pp.5–6) आवेदन करने की तिथि को आवेदक की आयु 25 वर्ष से अधिक नहीं होनी चाहिए। स्नातकोत्तर स्तर के वैसे निर्धारित पाठ्यक्रम जिनमें नामांकन हेतु न्यूनतम शैक्षणिक योग्यता स्नातक उत्तीर्ण है, के लिए अधिकतम उम्र सीमा 30 वर्ष होगी। ... शिक्षा ऋण अधिकतम चार लाख रूपये तक स्वीकृत की जाएगी। ... अब यह ऋण की राशि सभी आवेदकों को ब्याज मुक्त उपलब्ध कराई जाएगी"
+    },
+    {
+      "url": "https://www.7nishchay-yuvaupmission.bihar.gov.in/resources/Process_Flow_for_BSCC.pdf",
+      "title": "Process Flow for Bihar Student Credit Card Scheme",
+      "accessed_on": "2026-11-09",
+      "excerpt": "List of Documents required: Filled Common Application form; Aadhar Card of applicant and co applicant (if available); Copy of Pan Card of the student and co-applicant; Xth and XIIth Certificate and Marksheet; ... Proof of admission; Fee Schedule; 2 Photographs of Student/ Parents / Guarantor; Last year's income certificate/ Form 16; Last two year's income tax return; Last 6 months Bank Statement; Proof of Residence (ID/ Passport/ Voter ID/ Driving License); Tax Receipt"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. (1) The revised guideline is in legacy Kruti Dev font; the drafter decoded it manually — reviewer must check age (25/30), max loan (₹4 lakh) and 'interest-free for all' against the PDF visually. (2) Letter No-355 dated 17.10.2025 on the guidelines page is an image-only PDF that could not be read; it may change terms — reviewer must read it. (3) Document list comes from the older 'Process Flow' PDF which describes a bank-led process (banks were later replaced by the Bihar State Education Finance Corporation per the revised guideline); 'Tax Receipt' and 'Document e' items in that list were unclear and omitted; the list may be outdated — confirm at a DRCC. (4) Moratorium/repayment terms (60/84/120 instalments) exist in the guideline but were left out to keep the record short. (5) Helpline 18003456444 is printed on the official FAQ page. (6) Categories: 'education' (could also be 'loan')."
+  }
+}

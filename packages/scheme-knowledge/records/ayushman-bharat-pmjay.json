@@ -1,0 +1,112 @@
+{
+  "id": "ayushman-bharat-pmjay",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "आयुष्मान भारत — प्रधानमंत्री जन आरोग्य योजना (AB PM-JAY)",
+    "en": "Ayushman Bharat — Pradhan Mantri Jan Arogya Yojana (AB PM-JAY)"
+  },
+  "aliases": [
+    "आयुष्मान भारत",
+    "आयुष्मान कार्ड",
+    "आयुष्मान योजना",
+    "गोल्डन कार्ड",
+    "पीएम जय",
+    "ayushman card",
+    "ayushman bharat",
+    "PMJAY",
+    "PM-JAY",
+    "5 lakh wala card",
+    "आयुष्मान वय वंदना",
+    "मुफ्त इलाज वाला कार्ड"
+  ],
+  "state": "",
+  "department": {
+    "hi": "राष्ट्रीय स्वास्थ्य प्राधिकरण, स्वास्थ्य एवं परिवार कल्याण मंत्रालय, भारत सरकार",
+    "en": "National Health Authority, Ministry of Health and Family Welfare, Government of India"
+  },
+  "category": "health",
+  "keywords": [
+    "इलाज",
+    "अस्पताल",
+    "भर्ती",
+    "ऑपरेशन",
+    "बीमा",
+    "health",
+    "hospital",
+    "treatment",
+    "insurance",
+    "70 years"
+  ],
+  "summary": {
+    "hi": "AB PM-JAY पात्र परिवारों को अस्पताल में भर्ती होकर इलाज (द्वितीयक और तृतीयक) के लिए हर साल प्रति परिवार ₹5 लाख तक का स्वास्थ्य कवर देती है। 70 साल या उससे ज़्यादा उम्र के सभी वरिष्ठ नागरिक, आय कुछ भी हो, पात्र हैं।",
+    "en": "AB PM-JAY gives eligible families health cover of up to ₹5 lakh per family per year for secondary and tertiary hospitalisation. All senior citizens aged 70 and above are eligible irrespective of income."
+  },
+  "eligibility": [
+    {
+      "hi": "योजना में शामिल पात्र परिवारों के सभी सदस्य, उम्र कोई भी हो।",
+      "en": "All members of eligible (covered) families, irrespective of age."
+    },
+    {
+      "hi": "70 साल या उससे ज़्यादा उम्र के सभी वरिष्ठ नागरिक, सामाजिक-आर्थिक स्थिति कुछ भी हो। उन्हें एक अलग नया कार्ड मिलता है।",
+      "en": "All senior citizens aged 70 and above, irrespective of socio-economic status. They are issued a new distinct card."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "अस्पताल में भर्ती होकर द्वितीयक और तृतीयक इलाज के लिए हर साल प्रति परिवार ₹5 लाख तक का कवर।",
+      "en": "Cover of up to ₹5 lakh per family per year for secondary and tertiary care hospitalisation."
+    },
+    {
+      "hi": "जो 70+ वरिष्ठ नागरिक पहले से योजना वाले परिवार में हैं, उन्हें अपने लिए हर साल ₹5 लाख तक का अतिरिक्त टॉप-अप मिलता है (जो 70 से कम उम्र के सदस्यों के साथ बाँटना नहीं पड़ता)। बाकी 70+ वरिष्ठ नागरिकों को परिवार के आधार पर ₹5 लाख तक का कवर।",
+      "en": "Senior citizens 70+ in families already covered get an additional top-up of up to ₹5 lakh per year for themselves (not shared with members below 70). Other seniors 70+ get cover of up to ₹5 lakh per year on a family basis."
+    }
+  ],
+  "questions": [
+    {
+      "id": "age_70_plus",
+      "ask": {
+        "hi": "क्या जिनके लिए कार्ड चाहिए, उनकी उम्र 70 साल या उससे ज़्यादा है?",
+        "en": "Is the person who needs the card aged 70 or above?"
+      },
+      "kind": "yes_no"
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "अपनी पात्रता और आयुष्मान कार्ड के बारे में नज़दीकी सूचीबद्ध (empanelled) अस्पताल के आयुष्मान मित्र, CSC केंद्र या सरकारी स्वास्थ्य केंद्र पर पूछें।",
+      "en": "Ask about eligibility and the Ayushman card at the Ayushman Mitra desk of a nearby empanelled hospital, a CSC centre or a government health facility."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "सूचीबद्ध सरकारी या निजी अस्पताल",
+      "en": "Empanelled public or private hospital"
+    },
+    {
+      "hi": "CSC (जन सेवा केंद्र)",
+      "en": "CSC (Common Service Centre)"
+    }
+  ],
+  "official_url": "",
+  "exceptions": [
+    {
+      "hi": "CGHS, ECHS या आयुष्मान CAPF का लाभ ले रहे 70+ वरिष्ठ नागरिक अपनी मौजूदा योजना या AB PM-JAY में से एक चुन सकते हैं। निजी बीमा या ESI वाले 70+ वरिष्ठ नागरिक भी AB PM-JAY के पात्र हैं।",
+      "en": "Seniors 70+ already covered by CGHS, ECHS or Ayushman CAPF may choose either their existing scheme or AB PM-JAY. Seniors 70+ with private insurance or ESI are also eligible for AB PM-JAY."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.pmindia.gov.in/en/news_updates/cabinet-approves-health-coverage-to-all-senior-citizens-of-the-age-70-years-and-above-irrespective-of-income-under-ayushman-bharat-pradhan-mantri-jan-arogya-yojana-ab-pm-jay/",
+      "title": "PMIndia — Cabinet approves health coverage to all senior citizens of the age 70 years and above irrespective of income under AB PM-JAY",
+      "accessed_on": "2026-11-09",
+      "excerpt": "AB PM-JAY is the world's largest publicly funded health assurance scheme which provides health cover of Rs. 5 lakh per family per year for secondary and tertiary care hospitalization ... All members of the eligible families irrespective of age are covered under the scheme. ... all senior citizens of the age 70 years and above irrespective of their socio- economic status would be eligible to avail the benefits of AB PM-JAY. The eligible senior citizens would be issued a new distinct card under AB PM-JAY."
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. pmjay.gov.in (and the beneficiary portal) timed out / refused connection from our network on 2026-11-09, and nha.gov.in/PM-JAY is a single-page app with no extractable text — the only official source actually read is the PMIndia cabinet release (Sep 2024). MISSING: how a family qualifies (SECC-2011 deprivation criteria / NFSA-based expansion in Bihar), document list for card creation, Aadhaar e-KYC step, the national helpline (14555 is widely cited but was NOT seen on an official page we fetched), and any Bihar top-up scheme. The 'Ayushman Mitra / CSC' guidance in application_steps is drafter knowledge — confirm wording. Question age_70_plus only routes guidance. Review fix 2026-11-09 (correctness finding 4): official_url (previously https://nha.gov.in/PM-JAY) REMOVED because no text on it was ever read. Re-checked 2026-11-09: nha.gov.in/PM-JAY still returns only a 3.8 KB JavaScript shell and pmjay.gov.in still times out. Reviewer: set official_url only after reading the official page in a browser."
+  }
+}

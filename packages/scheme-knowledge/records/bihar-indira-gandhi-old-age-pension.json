@@ -1,0 +1,129 @@
+{
+  "id": "bihar-indira-gandhi-old-age-pension",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "इंदिरा गांधी राष्ट्रीय वृद्धावस्था पेंशन योजना (बिहार)",
+    "en": "Indira Gandhi National Old Age Pension Scheme (Bihar)"
+  },
+  "aliases": [
+    "इंदिरा गांधी वृद्धावस्था पेंशन",
+    "वृद्धावस्था पेंशन",
+    "IGNOAPS",
+    "indira gandhi pension",
+    "indira gandhi old age pension",
+    "national old age pension",
+    "BPL वृद्धा पेंशन"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार (राष्ट्रीय सामाजिक सहायता कार्यक्रम)",
+    "en": "Social Welfare Department, Government of Bihar (National Social Assistance Programme)"
+  },
+  "category": "pension",
+  "keywords": [
+    "वृद्धावस्था",
+    "पेंशन",
+    "बीपीएल",
+    "बुजुर्ग",
+    "old age",
+    "pension",
+    "BPL",
+    "NSAP"
+  ],
+  "summary": {
+    "hi": "इंदिरा गांधी राष्ट्रीय वृद्धावस्था पेंशन योजना BPL परिवार के 60 साल या उससे ज़्यादा उम्र के महिला/पुरुषों को हर महीने पेंशन देती है। आवेदन प्रखंड के RTPS काउंटर पर होता है।",
+    "en": "IGNOAPS gives a monthly pension to men and women aged 60 or above from BPL families. Apply at the block RTPS counter."
+  },
+  "eligibility": [
+    {
+      "hi": "उम्र 60 साल या उससे ज़्यादा।",
+      "en": "Aged 60 years or above."
+    },
+    {
+      "hi": "BPL परिवार।",
+      "en": "Belongs to a BPL family."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार बिहार में 3 साल का निवास।",
+      "en": "Per the RTPS list, 3 years of residence."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "हर महीने पेंशन। (राशि की पुष्टि होनी बाकी है।)",
+      "en": "A monthly pension. (Amount pending confirmation.)"
+    }
+  ],
+  "age_rule": {
+    "hi": "60 साल या उससे ज़्यादा",
+    "en": "60 years or above"
+  },
+  "income_rule": {
+    "hi": "BPL परिवार",
+    "en": "BPL family"
+  },
+  "questions": [
+    {
+      "id": "age_60_plus",
+      "ask": {
+        "hi": "क्या जिनके लिए पेंशन चाहिए, उनकी उम्र 60 साल या उससे ज़्यादा है?",
+        "en": "Is the person aged 60 or above?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "is_bpl",
+      "ask": {
+        "hi": "क्या परिवार BPL (गरीबी रेखा से नीचे) सूची में है?",
+        "en": "Is the family on the BPL list?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में आवेदन प्रखंड कार्यालय के RTPS काउंटर पर जमा करें।",
+      "en": "Submit the application in the prescribed form at the block office RTPS counter."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार प्रखंड विकास पदाधिकारी 21 कार्य दिवस में निर्णय देते हैं; अपील अनुमंडल पदाधिकारी के पास।",
+      "en": "Per the RTPS list, the Block Development Officer decides within 21 working days; appeal lies with the Sub-Division Officer."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "exceptions": [
+    {
+      "hi": "मुख्यमंत्री वृद्धजन पेंशन योजना उन बुजुर्गों के लिए है जो किसी और सरकारी पेंशन से नहीं जुड़े हैं; दोनों योजनाओं में से कौन-सी लागू होगी, यह प्रखंड कार्यालय में पक्का करें।",
+      "en": "Mukhyamantri Vridhjan Pension covers elderly people not receiving any other government pension; confirm at the block office which of the two schemes applies."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_SWD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of Social Welfare Department (SWD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Indira Gandhi National Old Age Pension | Age: > = 60 years, Income: BPL, Residence: 03 years | Block Development Officer (21) | Sub-Division Officer (15) | District Magistrate (15)"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/ea093fd8-018c-4135-be91-220a61dcc246.pdf",
+      "title": "Social Welfare Department, Bihar — इंदिरा गांधी राष्ट्रीय वृद्धावस्था पेंशन योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of sections 4–5) बी0पी0एल0 परिवार के 60 वर्ष या अधिक आयु के महिला/पुरुष ... आच्छादित होंगे | ... विहित प्रपत्र में अपना आवेदन प्रखंड कार्यालय स्तर पर अवस्थित RTPS काउंटर पर जमा किया जाता है।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT OMITTED: the SW PDF (uploaded Apr 2024) says ₹400 (60-79) and ₹500 (80+) per month, but Bihar reportedly raised social security pensions to ₹1100 from June 2025 (confirmed on the state portal only for MVPY). Confirm current amount and the central/state share before adding. The 'exceptions' line on MVPY vs IGNOAPS is drafter guidance derived from MVPY's eligibility text — reviewer should confirm how the department routes applicants. Document list not stated in the sources (RTPS table shows '-' for attachments); mandatory_docs left empty. Residence period (3 years) comes only from the undated RTPS table."
+  }
+}

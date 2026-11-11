@@ -1,0 +1,43 @@
+# Jan Sahayak central API (example unit). Install the binary to
+# /opt/jan-sahayak-central/bin/central-api and the env file from
+# central.env.example to /etc/jan-sahayak/central.env.
+[Unit]
+Description=Jan Sahayak central API
+After=network-online.target postgresql.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jansahayak-central
+Group=jansahayak-central
+EnvironmentFile=/etc/jan-sahayak/central.env
+ExecStart=/opt/jan-sahayak-central/bin/central-api
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+StateDirectory=jan-sahayak-central
+ReadOnlyPaths=/etc/jan-sahayak
+UMask=0077
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

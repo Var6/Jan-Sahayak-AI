@@ -1,0 +1,145 @@
+{
+  "id": "bihar-post-matric-scholarship-bc-ebc",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "पोस्ट मैट्रिक छात्रवृत्ति — पिछड़ा / अत्यंत पिछड़ा वर्ग (बिहार)",
+    "en": "Post-Matric Scholarship for BC/EBC Students (Bihar)"
+  },
+  "aliases": [
+    "पोस्ट मैट्रिक छात्रवृत्ति",
+    "पोस्ट मैट्रिक स्कॉलरशिप",
+    "post matric scholarship",
+    "PMS bihar",
+    "BC EBC scholarship",
+    "छात्रवृत्ति",
+    "स्कॉलरशिप",
+    "pms online"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "शिक्षा विभाग, बिहार सरकार (BC-EBC पोर्टल)",
+    "en": "Education Department, Government of Bihar (BC-EBC portal)"
+  },
+  "category": "scholarship",
+  "keywords": [
+    "छात्रवृत्ति",
+    "स्कॉलरशिप",
+    "पढ़ाई",
+    "पिछड़ा वर्ग",
+    "अति पिछड़ा",
+    "scholarship",
+    "post matric",
+    "BC",
+    "EBC",
+    "student"
+  ],
+  "summary": {
+    "hi": "बिहार के पिछड़ा और अत्यंत पिछड़ा वर्ग के मैट्रिक के बाद पढ़ने वाले विद्यार्थियों के लिए पोस्ट मैट्रिक छात्रवृत्ति का आवेदन pmsonline.bihar.gov.in पर तय तारीखों में ऑनलाइन होता है। अनुसूचित जाति/जनजाति के विद्यार्थियों के लिए अलग पोर्टल है।",
+    "en": "Post-matric scholarship applications for Bihar's BC and EBC students are made online on pmsonline.bihar.gov.in within notified dates. SC/ST students use a separate portal."
+  },
+  "eligibility": [
+    {
+      "hi": "बिहार के पिछड़ा वर्ग (BC) या अत्यंत पिछड़ा वर्ग (EBC) के विद्यार्थी जो मैट्रिक के बाद की पढ़ाई कर रहे हैं।",
+      "en": "Bihar BC or EBC students in post-matric studies."
+    },
+    {
+      "hi": "उसी कोर्स और उसी सत्र में किसी दूसरी छात्रवृत्ति योजना का लाभ ले रहे विद्यार्थी का आवेदन रद्द हो जाएगा।",
+      "en": "An application is rejected if the student receives another scholarship for the same course and session."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "छात्रवृत्ति की राशि आधार से सीड बैंक खाते में DBT से भेजी जाती है। (राशि की पुष्टि होनी बाकी है।)",
+      "en": "The scholarship is paid by DBT into the Aadhaar-seeded bank account. (Amount pending confirmation.)"
+    }
+  ],
+  "questions": [
+    {
+      "id": "is_bc_ebc",
+      "ask": {
+        "hi": "क्या विद्यार्थी पिछड़ा वर्ग या अत्यंत पिछड़ा वर्ग से हैं?",
+        "en": "Is the student from the BC or EBC category?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "post_matric_course",
+      "ask": {
+        "hi": "क्या विद्यार्थी अभी मैट्रिक के बाद का (पोस्ट मैट्रिक) कोई कोर्स पढ़ रहे हैं?",
+        "en": "Is the student currently in a post-matric course (after matriculation)?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "अंचल (R.O.) स्तर का आय प्रमाण पत्र — 2026-27 के लिए जारी होने की तारीख 01-04-2026 या उसके बाद की हो",
+        "en": "Income certificate issued at R.O. (circle) level — for 2026-27, issued on or after 01-04-2026"
+      }
+    },
+    {
+      "name": {
+        "hi": "अंचल (R.O.) स्तर का जाति प्रमाण पत्र — पिछले दो शैक्षणिक सत्रों से अब तक का मान्य",
+        "en": "Caste certificate issued at R.O. (circle) level — accepted if issued within the last two academic sessions up to the current one"
+      }
+    },
+    {
+      "name": {
+        "hi": "आधार से DBT के लिए सीड बैंक खाता",
+        "en": "Bank account seeded with Aadhaar for DBT"
+      },
+      "note": {
+        "hi": "आधार सीडिंग पूरी न होने पर आवेदन Finalize नहीं होगा।",
+        "en": "The application cannot be finalised until Aadhaar seeding is complete."
+      }
+    },
+    {
+      "name": {
+        "hi": "शैक्षणिक दस्तावेज़ — 2026-27 के लिए तारीख 01-04-2026 से 31-03-2027 के बीच की हो",
+        "en": "Academic documents — for 2026-27, dated between 01-04-2026 and 31-03-2027"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "pmsonline.bihar.gov.in पर तय तारीखों में New Registration करें, आवेदन भरें और कागज़ अपलोड करें।",
+      "en": "Register on pmsonline.bihar.gov.in within the notified dates, fill the application and upload documents."
+    },
+    {
+      "hi": "आधार सीडिंग स्टेटस जाँचें और आवेदन Finalize करें। इसके बाद संस्थान और फिर ज़िला स्तर पर सत्यापन होता है।",
+      "en": "Check Aadhaar seeding status and finalise the application. It is then verified by the institute and then at district level."
+    },
+    {
+      "hi": "आवेदन में कमी (Defect) आने पर 15 दिनों के अंदर सुधार करके फिर से Finalize करें; अधिकतम 3 मौके मिलते हैं।",
+      "en": "If a defect is flagged, correct and re-finalise within 15 days; a maximum of 3 chances is given."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: pmsonline.bihar.gov.in (BC/EBC)",
+      "en": "Online: pmsonline.bihar.gov.in (BC/EBC)"
+    },
+    {
+      "hi": "अनुसूचित जाति/जनजाति के लिए: scstpmsonline.bihar.gov.in",
+      "en": "For SC/ST: scstpmsonline.bihar.gov.in"
+    }
+  ],
+  "official_url": "https://pmsonline.bihar.gov.in/",
+  "sources": [
+    {
+      "url": "https://pmsonline.bihar.gov.in/",
+      "title": "Post Matric Scholarship BC-EBC Portal, Education Department, Govt. of Bihar",
+      "accessed_on": "2026-11-09",
+      "excerpt": "BC/EBC Post Matric Scholarship आवेदन 15.07.2026 से 30.09.2026 तक ... आवेदन के लिए R.O. Level का आय प्रमाण पत्र एवं जाति प्रमाण पत्र आवश्यक हैं। ... Aadhaar Seeding Check अनिवार्य है। ... आय प्रमाण पत्र की जारी तिथि 01-04-2026 या उसके बाद की होनी चाहिए। जाति प्रमाण पत्र पिछले दो शैक्षणिक सत्रों से वर्तमान शैक्षणिक सत्र तक मान्य होगा। ... शैक्षणिक सत्र 2026-27 हेतु छात्रवृत्ति/शैक्षणिक सहायता के लिए ऑनलाइन आवेदन दिनांक 15.07.2026 से 30.09.2026 तक आमंत्रित किए जा रहे हैं। ... सभी आवश्यक शैक्षणिक दस्तावेजों पर अंकित तिथि 01-04-2026 से 31-03-2027 के बीच की होनी चाहिए। ... आवेदन में Defect/Reject होने पर त्रुटि सुधारने के लिए अधिकतम 3 अवसर दिए जाएंगे। ... यदि किसी छात्र/छात्रा के आवेदन में Defect पाया जाता है, तो उसे 15 दिनों के भीतर आवश्यक सुधार कर आवेदन पुनः Finalize करना अनिवार्य होगा।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. DEADLINES AND DATE RULES CHANGE EVERY SESSION: the 2026-27 window (15.07.2026–30.09.2026) has closed as of 2026-11-09; the date rules for documents are session-specific — review every session (90 days or at each notification). Income limit, course-wise amounts and fee rules are NOT on the portal home page and were not confirmed (portal's Student.pdf not read) — omitted. SC/ST post-matric (scstpmsonline.bihar.gov.in) is a separate scheme run by a different department; it needs its own record. Eligibility wording 'BC/EBC students in post-matric studies' is inferred from the portal name — reviewer should add the official eligibility text. Review fix 2026-11-09 (correctness finding 4): the 2026-27 session, the academic-document date range, the 15-day defect correction and the 3-chance rule are now quoted from the portal home page (re-fetched). The question no longer says \"class 10\" because no fetched source states it; \"post-matric\" is the portal's own term."
+  }
+}

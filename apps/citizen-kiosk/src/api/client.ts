@@ -86,7 +86,7 @@ export class DeviceApi {
     return this.request({ method: "GET", path: "/status", timeoutMs: TIMEOUTS.status, signal });
   }
 
-  startSession(language?: Lang): Promise<ReplyResult> {
+  async startSession(language?: Lang): Promise<ReplyResult> {
     return this.request({
       method: "POST",
       path: "/session/start",
@@ -95,14 +95,12 @@ export class DeviceApi {
     });
   }
 
-  listen(id: string): Promise<SessionResult> {
+  async listen(id: string): Promise<SessionResult> {
     return this.post(`/session/${sid(id)}/listen`, TIMEOUTS.control);
   }
 
-  sendAudio(id: string, wav: Blob): Promise<TurnResult> {
-    if (wav.size > MAX_AUDIO_BYTES) {
-      return Promise.reject(new ApiError("too_large", 0, "audio exceeds 1 MB"));
-    }
+  async sendAudio(id: string, wav: Blob): Promise<TurnResult> {
+    if (wav.size > MAX_AUDIO_BYTES) throw new ApiError("too_large", 0, "audio exceeds 1 MB");
     return this.request({
       method: "POST",
       path: `/session/${sid(id)}/audio`,
@@ -112,32 +110,37 @@ export class DeviceApi {
     });
   }
 
-  sendText(id: string, text: string): Promise<TurnResult> {
+  async sendText(id: string, text: string): Promise<TurnResult> {
     const t = text.trim();
-    if (t.length === 0) return Promise.reject(new ApiError("bad_request", 0, "empty text"));
+    if (t.length === 0) throw new ApiError("bad_request", 0, "empty text");
     if ([...t].length > MAX_TEXT_CHARS) {
-      return Promise.reject(new ApiError("too_large", 0, "text exceeds 500 characters"));
+      throw new ApiError("too_large", 0, "text exceeds 500 characters");
     }
     return this.post(`/session/${sid(id)}/text`, TIMEOUTS.turn, { text: t });
   }
 
-  chooseOption(id: string, optionId: string): Promise<TurnResult> {
+  async chooseOption(id: string, optionId: string): Promise<TurnResult> {
     return this.post(`/session/${sid(id)}/option`, TIMEOUTS.turn, { option_id: optionId });
   }
 
-  speakingDone(id: string): Promise<SessionResult> {
+  async speakingDone(id: string): Promise<SessionResult> {
     return this.post(`/session/${sid(id)}/speaking-done`, TIMEOUTS.control);
   }
 
-  setLanguage(id: string, language: Lang): Promise<SessionResult> {
+  async setLanguage(id: string, language: Lang): Promise<SessionResult> {
     return this.post(`/session/${sid(id)}/language`, TIMEOUTS.control, { language });
   }
 
-  touch(id: string): Promise<SessionResult> {
+  /** Greeting again in the session's current language (after a language change). */
+  async greeting(id: string): Promise<ReplyResult> {
+    return this.post(`/session/${sid(id)}/greeting`, TIMEOUTS.reply);
+  }
+
+  async touch(id: string): Promise<SessionResult> {
     return this.post(`/session/${sid(id)}/touch`, TIMEOUTS.control);
   }
 
-  end(id: string): Promise<ReplyResult> {
+  async end(id: string): Promise<ReplyResult> {
     return this.post(`/session/${sid(id)}/end`, TIMEOUTS.reply);
   }
 

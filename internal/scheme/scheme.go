@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Status of a record.
@@ -191,29 +192,153 @@ func (r Record) Validate() error {
 		if r.Verification.VerifiedBy == "" || r.Verification.VerifiedAt == "" {
 			add("VERIFIED requires verified_by and verified_at (a human reviewer)")
 		}
-		if strings.Contains(strings.ToLower(r.Verification.VerifiedBy), "ai") ||
-			strings.Contains(strings.ToLower(r.Verification.VerifiedBy), "claude") ||
-			strings.Contains(strings.ToLower(r.Verification.VerifiedBy), "llm") {
-			add("verified_by must be a human reviewer")
+		if r.Verification.VerifiedBy != "" {
+			if err := ValidReviewer(r.Verification.VerifiedBy); err != nil {
+				add("verified_by: %v", err)
+			}
+		}
+		if r.Verification.VerifiedAt != "" {
+			if _, err := ParseVerifiedAt(r.Verification.VerifiedAt); err != nil {
+				add("verified_at must be RFC 3339 or YYYY-MM-DD")
+			}
 		}
 	case NeedsReview, Outdated, Unverified:
 	default:
 		add("verification.status %q invalid", r.Verification.Status)
 	}
+	if r.Verification.ReviewDue != "" {
+		if _, err := time.Parse(dateLayout, r.Verification.ReviewDue); err != nil {
+			add("review_due %q must be YYYY-MM-DD", r.Verification.ReviewDue)
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// IsFactual reports whether this record may be presented as fact.
+const dateLayout = "2006-01-02"
+
+// IsFactual reports whether this record may be presented as fact. A
+// review_due that does not parse makes the record non-factual: an
+// unreadable deadline must never mean "valid forever".
 func (r Record) IsFactual(now time.Time) bool {
 	if r.Verification.Status != Verified {
 		return false
 	}
+	if ValidReviewer(r.Verification.VerifiedBy) != nil {
+		return false
+	}
 	if r.Verification.ReviewDue != "" {
-		if due, err := time.Parse("2006-01-02", r.Verification.ReviewDue); err == nil && now.After(due.Add(24*time.Hour)) {
-			return false // overdue for review → treat as needing verification
+		due, err := time.Parse(dateLayout, r.Verification.ReviewDue)
+		if err != nil || now.After(due.Add(24*time.Hour)) {
+			return false // unreadable or overdue → treat as needing verification
 		}
 	}
 	return true
+}
+
+// ParseVerifiedAt parses a verified_at value (RFC 3339, or a bare
+// YYYY-MM-DD date).
+func ParseVerifiedAt(s string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	return time.Parse(dateLayout, s)
+}
+
+// --- Reviewer identity -------------------------------------------------
+//
+// verified_by must identify the HUMAN who checked the facts. Accepted forms:
+//   - the central reviewer workflow's user id (a UUID, as written by
+//     POST /v1/admin/schemes/{id}/verify);
+//   - "reviewer:<id>" where <id> is a lowercase slug / e-mail-like handle;
+//   - a person's name ("Asha Devi", "Kailash Paswan").
+// It is refused when any whole word of it names a tool or model (the
+// machineReviewerWords denylist). Words are split at every non-letter and
+// at letter/digit boundaries ("GPT-4o" → gpt, 4, o), so real names that
+// merely contain those letters ("Sairam", "Vaishali") are accepted.
+
+var (
+	uuidRe       = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	reviewerIDRe = regexp.MustCompile(`^reviewer:[a-z0-9][a-z0-9._@\-]{0,63}$`)
+)
+
+// machineReviewerWords are whole words that mark a tool, model or
+// automated process. Compared case-insensitively.
+var machineReviewerWords = map[string]bool{
+	"gpt": true, "chatgpt": true, "openai": true, "llm": true, "llms": true, "claude": true, "anthropic": true,
+	"gemma": true, "gemini": true, "llama": true, "mistral": true, "copilot": true, "bot": true, "bots": true,
+	"chatbot": true, "model": true, "models": true, "machine": true, "auto": true, "automatic": true,
+	"automated": true, "autoverifier": true, "ai": true, "script": true, "importer": true, "scraper": true,
+	"crawler": true, "pipeline": true, "system": true, "verifier": true,
+}
+
+// ValidReviewer reports whether s is an acceptable verified_by value.
+func ValidReviewer(s string) error {
+	s = strings.TrimSpace(s)
+	switch {
+	case s == "":
+		return errors.New("verified_by is empty")
+	case len(s) > 120:
+		return errors.New("verified_by too long")
+	case uuidRe.MatchString(s):
+		return nil
+	case strings.HasPrefix(s, "reviewer:"):
+		if !reviewerIDRe.MatchString(s) {
+			return fmt.Errorf("reviewer id %q malformed", s)
+		}
+		s = strings.TrimPrefix(s, "reviewer:")
+	}
+	letters := 0
+	for _, w := range reviewerWords(s) {
+		if machineReviewerWords[w] {
+			return fmt.Errorf("%q names a tool or model; a human reviewer is required", s)
+		}
+		for _, c := range w {
+			if unicode.IsLetter(c) {
+				letters++
+			}
+		}
+	}
+	if letters < 2 {
+		return errors.New("verified_by must name a human reviewer")
+	}
+	for _, c := range s {
+		if unicode.IsControl(c) {
+			return errors.New("verified_by contains control characters")
+		}
+	}
+	return nil
+}
+
+// reviewerWords splits s into lowercase words at non-alphanumerics and at
+// letter/digit boundaries.
+func reviewerWords(s string) []string {
+	var out []string
+	var cur []rune
+	kind := 0 // 1 letter, 2 digit
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, strings.ToLower(string(cur)))
+			cur = cur[:0]
+		}
+	}
+	for _, c := range s {
+		k := 0
+		switch {
+		case unicode.IsLetter(c) || unicode.Is(unicode.Mn, c) || unicode.Is(unicode.Mc, c):
+			k = 1
+		case unicode.IsDigit(c):
+			k = 2
+		}
+		if k == 0 || k != kind {
+			flush()
+		}
+		kind = k
+		if k != 0 {
+			cur = append(cur, c)
+		}
+	}
+	flush()
+	return out
 }
 
 func contains(xs []string, s string) bool {

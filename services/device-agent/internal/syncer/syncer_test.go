@@ -236,3 +236,49 @@ func TestRunStopsCleanly(t *testing.T) {
 		t.Fatal("Run did not stop")
 	}
 }
+
+// Security finding 7: redirects are never followed; a 3xx is a retry.
+func TestRedirectIsNotFollowed(t *testing.T) {
+	ctx := context.Background()
+	w, ob, fs, _ := setup(t)
+	var hits int
+	var mu sync.Mutex
+	redir := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hits++
+		mu.Unlock()
+		http.Redirect(rw, r, w.cfg.BaseURL+r.URL.Path, http.StatusTemporaryRedirect)
+	}))
+	t.Cleanup(redir.Close)
+	real := w.cfg.BaseURL
+	w.cfg.BaseURL = redir.URL
+	ob.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	if _, err := w.SyncOnce(ctx); err == nil {
+		t.Fatal("expected error for 307")
+	}
+	if fs.storedCount() != 0 {
+		t.Fatalf("redirect was followed to %s", real)
+	}
+	if c := counts(t, ob); c[outbox.Pending] != 1 {
+		t.Fatalf("got %v", c)
+	}
+}
+
+// Finding 7: a batch left UPLOADING (ApplyAck failed) is re-queued at the
+// start of the next sync pass and then delivered.
+func TestStaleUploadingRequeuedOnNextPass(t *testing.T) {
+	ctx := context.Background()
+	w, ob, fs, s := setup(t)
+	ob.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	if _, evs, err := ob.Claim(ctx, 10); err != nil || len(evs) != 1 {
+		t.Fatal("claim")
+	}
+	// Pretend the claim is old (the ack could not be applied long ago).
+	if _, err := s.DB.Exec(`UPDATE outbox_events SET claimed_at='2000-01-01T00:00:00.000000000Z'`); err != nil {
+		t.Fatal(err)
+	}
+	w.drain(ctx)
+	if c := counts(t, ob); c[outbox.Acknowledged] != 1 || fs.storedCount() != 1 {
+		t.Fatalf("got %v stored %d", c, fs.storedCount())
+	}
+}

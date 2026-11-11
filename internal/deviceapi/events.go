@@ -129,13 +129,13 @@ func ValidatePayload(eventType string, schemaVersion int, payload []byte) error 
 	switch {
 	case eventType == TypeSessionEnded && schemaVersion == 1:
 		var v SessionEnded
-		if err := strictDecode(payload, &v); err != nil {
+		if err := strictDecode(payload, &v, sessionEndedKeys); err != nil {
 			return err
 		}
 		return v.Validate()
 	case eventType == TypeTurn && schemaVersion == 1:
 		var v Turn
-		if err := strictDecode(payload, &v); err != nil {
+		if err := strictDecode(payload, &v, turnKeys); err != nil {
 			return err
 		}
 		return v.Validate()
@@ -144,7 +144,24 @@ func ValidatePayload(eventType string, schemaVersion int, payload []byte) error 
 	}
 }
 
-func strictDecode(b []byte, v any) error {
+// Exact key sets. encoding/json matches keys case-insensitively, so
+// {"Intent":"free text","intent":"x"} would decode fine while the database
+// stores both keys; checking exact names closes that gap.
+var (
+	sessionEndedKeys = []string{"session_id", "language", "started_at", "ended_at", "end_reason", "turns"}
+	turnKeys         = []string{"session_id", "seq", "language", "source", "intent", "category", "service", "resolution", "used_llm"}
+)
+
+func strictDecode(b []byte, v any, keys []string) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil || m == nil {
+		return errors.New("payload must be a JSON object")
+	}
+	for k := range m {
+		if !slices.Contains(keys, k) {
+			return errors.New("payload has an unknown field")
+		}
+	}
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {

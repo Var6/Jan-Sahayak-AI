@@ -11,6 +11,30 @@
 //
 // All state lives behind one mutex; timing is driven by Manager.Run calling
 // Tick once per second, which keeps the logic deterministic and testable.
+//
+// Busy-state caps and recovery API (reliability review finding 5,
+// correctness review finding 1; consumed by internal/api and cmd):
+//
+//   - PROCESSING and SPEAKING are exempt from the inactivity rules only for a
+//     bounded time. Timeouts.MaxProcessing (default DefaultMaxProcessing =
+//     70 s, i.e. the default 55 s TurnTimeout + 15 s; callers should pass
+//     TurnTimeout+15 s) caps PROCESSING. SPEAKING is capped at
+//     max(clip-length hint, Timeouts.MaxSpeaking) (default 120 s); the hint
+//     is given with SetSpeaking(id, clip), plain SetActivity(id, Speaking)
+//     uses MaxSpeaking alone. When a cap is exceeded Tick moves the session
+//     to READY (publishing session.activity) WITHOUT resetting the idle
+//     clock, so the normal reminder / final-warning / close rules apply from
+//     the citizen's last real interaction.
+//   - Manager.ForceReady(id) moves the active session to READY immediately
+//     (no idle-clock reset). The API calls it from a deferred recover in a
+//     turn so a panic never leaves the session in PROCESSING.
+//   - Manager.StartFresh(language) ends any open session with EndAbandoned
+//     (cleanup hooks run) and then starts a new one. The API uses it when the
+//     physical button is pressed on an abandoned session, so the next citizen
+//     never inherits the previous citizen's in-memory dialogue state.
+//   - EndAbandoned is a device-side reason. It is NOT in the central
+//     session.ended enumeration; recorders must send EndReason.Wire(), which
+//     maps it to "inactivity_timeout" (every other reason maps to itself).
 package session
 
 import (
@@ -41,7 +65,21 @@ const (
 	EndTimeout  EndReason = "inactivity_timeout"
 	EndShutdown EndReason = "device_shutdown"
 	EndError    EndReason = "error"
+	// EndAbandoned: the session was ended because the next citizen pressed
+	// the button while it was still open (see StartFresh). Device-side only;
+	// use Wire() for the central schema.
+	EndAbandoned EndReason = "abandoned"
 )
+
+// Wire returns the reason as accepted by the central session.ended schema
+// (citizen_ended, inactivity_timeout, device_shutdown, error). EndAbandoned
+// maps to inactivity_timeout: the previous citizen walked away.
+func (r EndReason) Wire() string {
+	if r == EndAbandoned {
+		return string(EndTimeout)
+	}
+	return string(r)
+}
 
 // EventType is pushed to subscribers (the kiosk UI via SSE, logs, outbox).
 type EventType string
@@ -56,15 +94,31 @@ const (
 	EvLanguage      EventType = "session.language"
 )
 
-// Timeouts holds the inactivity thresholds.
+// Timeouts holds the inactivity thresholds and the busy-state caps.
 type Timeouts struct {
 	Reminder     time.Duration
 	FinalWarning time.Duration
 	Close        time.Duration
+	// MaxProcessing caps how long a session may stay PROCESSING before Tick
+	// treats it as stuck and moves it to READY. Zero means
+	// DefaultMaxProcessing; set it to the API TurnTimeout + 15 s.
+	MaxProcessing time.Duration
+	// MaxSpeaking caps SPEAKING when no longer clip-length hint was given
+	// (SetSpeaking). Zero means DefaultMaxSpeaking.
+	MaxSpeaking time.Duration
 }
 
+// Default busy-state caps.
+const (
+	DefaultMaxProcessing = 55*time.Second + 15*time.Second // default TurnTimeout + 15 s
+	DefaultMaxSpeaking   = 120 * time.Second
+)
+
 // DefaultTimeouts are the specified 2/9/10-minute rules.
-var DefaultTimeouts = Timeouts{Reminder: 2 * time.Minute, FinalWarning: 9 * time.Minute, Close: 10 * time.Minute}
+var DefaultTimeouts = Timeouts{
+	Reminder: 2 * time.Minute, FinalWarning: 9 * time.Minute, Close: 10 * time.Minute,
+	MaxProcessing: DefaultMaxProcessing, MaxSpeaking: DefaultMaxSpeaking,
+}
 
 // Snapshot is the externally visible session state.
 type Snapshot struct {
@@ -106,11 +160,15 @@ type Manager struct {
 	cur      *Snapshot
 	reminded bool
 	warned   bool
-	t        Timeouts
-	now      func() time.Time
-	cleanups []CleanupFunc
-	subs     map[int]chan Event
-	nextSub  int
+	// activitySince is when the current activity began; speakingCap is the
+	// SPEAKING limit for the current clip.
+	activitySince time.Time
+	speakingCap   time.Duration
+	t             Timeouts
+	now           func() time.Time
+	cleanups      []CleanupFunc
+	subs          map[int]chan Event
+	nextSub       int
 }
 
 // NewManager creates a manager. now may be nil (uses time.Now).
@@ -119,7 +177,13 @@ func NewManager(t Timeouts, now func() time.Time) *Manager {
 		now = time.Now
 	}
 	if t.Close <= 0 {
-		t = DefaultTimeouts
+		t.Reminder, t.FinalWarning, t.Close = DefaultTimeouts.Reminder, DefaultTimeouts.FinalWarning, DefaultTimeouts.Close
+	}
+	if t.MaxProcessing <= 0 {
+		t.MaxProcessing = DefaultMaxProcessing
+	}
+	if t.MaxSpeaking <= 0 {
+		t.MaxSpeaking = DefaultMaxSpeaking
 	}
 	return &Manager{t: t, now: now, subs: map[int]chan Event{}}
 }
@@ -216,8 +280,45 @@ func (m *Manager) Start(language string) (Snapshot, error) {
 	now := m.now()
 	m.cur = &Snapshot{ID: newID(), Activity: Ready, Language: language, StartedAt: now, LastActiveAt: now}
 	m.reminded, m.warned = false, false
+	m.activitySince, m.speakingCap = now, 0
 	m.publishLocked(m.eventLocked(EvStarted))
 	return m.snapshotLocked(), nil
+}
+
+// StartFresh ends any open session with EndAbandoned (its cleanup hooks
+// run, outside the lock) and then starts a new one. If another caller starts
+// a session in between, that session is returned with ErrAlreadyActive.
+func (m *Manager) StartFresh(language string) (Snapshot, error) {
+	m.mu.Lock()
+	if m.cur != nil {
+		m.endLocked(EndAbandoned) // releases m.mu
+	} else {
+		m.mu.Unlock()
+	}
+	return m.Start(language)
+}
+
+// ForceReady moves the active session to READY at once, whatever it is
+// doing, without counting as citizen interaction (the idle clock is not
+// reset). Used by the API to recover from a panicking turn.
+func (m *Manager) ForceReady(id string) (Snapshot, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.checkLocked(id); err != nil {
+		return m.snapshotLocked(), err
+	}
+	if m.cur.Activity != Ready {
+		m.setActivityLocked(Ready, 0)
+		m.publishLocked(m.eventLocked(EvActivity))
+	}
+	return m.snapshotLocked(), nil
+}
+
+// setActivityLocked changes the activity and restarts its busy-state timer.
+func (m *Manager) setActivityLocked(a Activity, speakingCap time.Duration) {
+	m.cur.Activity = a
+	m.activitySince = m.now()
+	m.speakingCap = speakingCap
 }
 
 func (m *Manager) checkLocked(id string) error {
@@ -240,18 +341,34 @@ var allowed = map[Activity]map[Activity]bool{
 
 // SetActivity moves the session to a new activity. Every successful
 // transition counts as meaningful interaction and resets the idle clock.
+// SPEAKING set this way is capped at Timeouts.MaxSpeaking; use SetSpeaking
+// when the clip length is known.
 func (m *Manager) SetActivity(id string, a Activity) (Snapshot, error) {
+	return m.setActivity(id, a, 0)
+}
+
+// SetSpeaking moves the session to SPEAKING for a clip of the given length.
+// SPEAKING is then capped at max(clip, Timeouts.MaxSpeaking).
+func (m *Manager) SetSpeaking(id string, clip time.Duration) (Snapshot, error) {
+	return m.setActivity(id, Speaking, clip)
+}
+
+func (m *Manager) setActivity(id string, a Activity, clip time.Duration) (Snapshot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.checkLocked(id); err != nil {
 		return m.snapshotLocked(), err
 	}
-	if m.cur.Activity != a {
-		if !allowed[m.cur.Activity][a] {
-			return m.snapshotLocked(), fmt.Errorf("%w: %s -> %s", ErrBadTransition, m.cur.Activity, a)
-		}
-		m.cur.Activity = a
+	if m.cur.Activity != a && !allowed[m.cur.Activity][a] {
+		return m.snapshotLocked(), fmt.Errorf("%w: %s -> %s", ErrBadTransition, m.cur.Activity, a)
 	}
+	var speakCap time.Duration
+	if a == Speaking {
+		speakCap = max(clip, m.t.MaxSpeaking)
+	}
+	// Re-entering the same activity restarts its timer too: it is a new
+	// turn or a new clip.
+	m.setActivityLocked(a, speakCap)
 	if a == Processing {
 		m.cur.Turns++
 	}
@@ -371,10 +488,17 @@ func (m *Manager) Tick() {
 		m.mu.Unlock()
 		return
 	}
-	// Never time out while the device itself is busy on the citizen's behalf.
-	if m.cur.Activity == Processing || m.cur.Activity == Speaking {
-		m.mu.Unlock()
-		return
+	// Never time out while the device itself is busy on the citizen's
+	// behalf — but only for a bounded time. A turn that panicked or hung,
+	// or a UI that never reports speaking-done, must not keep the session
+	// (and the kiosk) open forever.
+	if limit, busy := m.busyLimitLocked(); busy {
+		if m.now().Sub(m.activitySince) < limit {
+			m.mu.Unlock()
+			return
+		}
+		m.setActivityLocked(Ready, 0) // idle clock deliberately not reset
+		m.publishLocked(m.eventLocked(EvActivity))
 	}
 	idle := m.now().Sub(m.cur.LastActiveAt)
 	switch {
@@ -389,6 +513,21 @@ func (m *Manager) Tick() {
 		m.publishLocked(m.eventLocked(EvReminder))
 	}
 	m.mu.Unlock()
+}
+
+// busyLimitLocked returns the cap for the current activity and whether the
+// activity is a busy one (PROCESSING or SPEAKING).
+func (m *Manager) busyLimitLocked() (time.Duration, bool) {
+	switch m.cur.Activity {
+	case Processing:
+		return m.t.MaxProcessing, true
+	case Speaking:
+		if m.speakingCap > 0 {
+			return m.speakingCap, true
+		}
+		return m.t.MaxSpeaking, true
+	}
+	return 0, false
 }
 
 // Run drives Tick once per second until ctx is done, then ends any active

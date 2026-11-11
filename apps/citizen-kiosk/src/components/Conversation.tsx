@@ -10,7 +10,9 @@ import { indicatorOf, MicButton } from "./MicButton";
 import { SchemeCard } from "./SchemeCard";
 
 function crisisNumbers(reply: Reply): string[] {
-  const fromCards = (reply.cards ?? []).map((c: Card) => c.helpline).filter((h): h is string => !!h);
+  const fromCards = (reply.cards ?? [])
+    .map((c: Card) => c.helpline)
+    .filter((h): h is string => !!h);
   const all = [...fromCards, ...extractNumbers(reply.text)];
   return [...new Set(all)].slice(0, 4);
 }
@@ -123,7 +125,7 @@ export function Conversation({ state, ctl }: { state: UiState; ctl: KioskControl
           </div>
         )}
         {reply?.options && reply.options.length > 0 && (
-          <div className="options" role="group">
+          <div className="options">
             {reply.options.map((o) => (
               <button
                 key={o.id}

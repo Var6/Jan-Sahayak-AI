@@ -36,11 +36,25 @@ measure. Claims below are marked *measured*, *tested* or *planned*.
 
 ## 3. Supervision and watchdog
 
-* Every process is a systemd unit with `Restart=always`, `RestartSec`, and
-  `StartLimitIntervalSec`/`StartLimitBurst` to stop restart storms.
-* The agent is `Type=notify` with `WatchdogSec=30`. It sends `WATCHDOG=1`
-  only after an internal liveness probe succeeds (SQLite ping + main-loop
-  heartbeat). A genuine hang → no ping → systemd kills and restarts it.
+* Every process is a systemd unit with `Restart=always`, `RestartSec=5` and
+  `StartLimitIntervalSec=0`: no start rate limit, so a persistent startup
+  error is retried every 5 s forever instead of leaving the unit failed
+  until a reboot (Pi OS bookworm's systemd 252 has no `RestartSteps`, so the
+  delay is fixed). Startup errors that are not real faults degrade instead
+  of failing (a missing GPIO button → `button` component, retried).
+* The agent is `Type=notify` with `WatchdogSec=30`. `READY=1` is retried
+  until the self-check passes. It sends `WATCHDOG=1` only while the SQLite
+  ping and HTTP self-probe pass and, after a 90 s grace period, the health
+  monitor (a completed database check), the session timer and the sync
+  loop keep stamping their own heartbeats (a check that never completed
+  counts as stalled). A genuine hang → no ping → systemd kills and restarts it.
+* Shutdown gives each step its own budget: in-flight requests are cancelled
+  and drained, then workers stop and the open session is recorded as ended,
+  then the database closes (all within `TimeoutStopSec=30`).
+* The speech worker exits(1) when a native inference has held its engine
+  for 3× its timeout (its `/health` answers 503 `wedged` meanwhile), so
+  systemd restarts it; the agent also treats three "busy" answers in a row
+  as a fault, and a worker still loading after 5 min as REQUIRES_ATTENTION.
   Repeated restarts are counted and reported in the next heartbeat, so the
   watchdog never silently hides a recurring fault.
 * The Pi's hardware watchdog (`/dev/watchdog`, bcm2835-wdt) is enabled in

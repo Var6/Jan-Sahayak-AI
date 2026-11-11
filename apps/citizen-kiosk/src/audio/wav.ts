@@ -4,14 +4,61 @@
 export const TARGET_RATE = 16_000;
 
 /**
- * Streaming box-filter downsampler: every output sample is the mean of the
- * input samples that fall in its time window. Averaging acts as a crude
- * low-pass filter, which is enough for speech recognition at 16 kHz from
- * 44.1/48 kHz input (speech energy is mostly below 4 kHz). The fractional
- * position is carried across chunks so chunk boundaries do not drift.
+ * Streaming windowed-sinc (Blackman) FIR low-pass filter. History is kept
+ * across chunks, so chunked and one-shot processing give identical output.
+ */
+export class LowPassFir {
+  private readonly taps: Float32Array;
+  private readonly hist: Float32Array; // last taps-1 input samples
+
+  /** @param cutoff cutoff frequency as a fraction of the sample rate (0..0.5) */
+  constructor(cutoff: number, numTaps = 33) {
+    if (!(cutoff > 0 && cutoff < 0.5)) throw new RangeError("cutoff must be in (0, 0.5)");
+    const n = numTaps | 1; // odd → symmetric, integer group delay
+    const m = n - 1;
+    const taps = new Float32Array(n);
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      const x = i - m / 2;
+      const sinc = x === 0 ? 2 * cutoff : Math.sin(2 * Math.PI * cutoff * x) / (Math.PI * x);
+      const w =
+        0.42 - 0.5 * Math.cos((2 * Math.PI * i) / m) + 0.08 * Math.cos((4 * Math.PI * i) / m);
+      taps[i] = sinc * w;
+      sum += sinc * w;
+    }
+    for (let i = 0; i < n; i++) taps[i] = (taps[i] as number) / sum; // unity DC gain
+    this.taps = taps;
+    this.hist = new Float32Array(m);
+  }
+
+  process(input: Float32Array): Float32Array {
+    const m = this.hist.length;
+    const n = this.taps.length;
+    // Work buffer = history followed by the new chunk.
+    const buf = new Float32Array(m + input.length);
+    buf.set(this.hist, 0);
+    buf.set(input, m);
+    const out = new Float32Array(input.length);
+    for (let i = 0; i < input.length; i++) {
+      let acc = 0;
+      for (let k = 0; k < n; k++) acc += (this.taps[k] as number) * (buf[i + k] as number);
+      out[i] = acc;
+    }
+    this.hist.set(buf.subarray(buf.length - m));
+    return out;
+  }
+}
+
+/**
+ * Streaming downsampler: anti-aliasing FIR low-pass (cutoff 0.45 × outRate,
+ * i.e. 7.2 kHz for 16 kHz output) followed by fractional box decimation —
+ * each output sample is the mean of the input samples in its time window.
+ * The fractional position is carried across chunks, so chunk boundaries do
+ * not drift.
  */
 export class Downsampler {
   private readonly ratio: number;
+  private readonly fir: LowPassFir | null;
   private acc = 0; // sum of samples in the current window
   private accN = 0; // number of samples (fractional weights) in the window
   private pos = 0; // position within the current window, in input samples
@@ -23,13 +70,15 @@ export class Downsampler {
     if (!(inRate > 0) || !(outRate > 0)) throw new RangeError("sample rates must be positive");
     if (outRate > inRate) throw new RangeError("upsampling is not supported");
     this.ratio = inRate / outRate;
+    this.fir = inRate === outRate ? null : new LowPassFir((0.45 * outRate) / inRate);
   }
 
   /**
    * Process one chunk and return the produced output samples (float, -1..1).
    * Allocates at most ceil(len / ratio) + 1 samples per call.
    */
-  process(input: Float32Array): Float32Array {
+  process(chunk: Float32Array): Float32Array {
+    const input = this.fir ? this.fir.process(chunk) : chunk;
     const out = new Float32Array(Math.ceil(input.length / this.ratio) + 1);
     let n = 0;
     const r = this.ratio;
@@ -56,17 +105,24 @@ export class Downsampler {
 }
 
 /** One-shot helper for a complete buffer. */
-export function downsample(input: Float32Array, inRate: number, outRate = TARGET_RATE): Float32Array {
+export function downsample(
+  input: Float32Array,
+  inRate: number,
+  outRate = TARGET_RATE,
+): Float32Array {
   if (inRate === outRate) return input.slice();
   return new Downsampler(inRate, outRate).process(input);
 }
 
 /** Convert float samples (-1..1, clipped) to signed 16-bit PCM. */
-export function floatToInt16(input: Float32Array, out = new Int16Array(input.length)): Int16Array {
+export function floatToInt16(
+  input: Float32Array,
+  out: Int16Array = new Int16Array(input.length),
+): Int16Array {
   for (let i = 0; i < input.length; i++) {
     let s = input[i] as number;
     if (Number.isNaN(s)) s = 0;
-    s = s < -1 ? -1 : s > 1 ? 1 : s;
+    s = Math.min(1, Math.max(-1, s));
     out[i] = s < 0 ? Math.round(s * 0x8000) : Math.round(s * 0x7fff);
   }
   return out;

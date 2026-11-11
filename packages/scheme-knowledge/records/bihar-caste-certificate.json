@@ -1,0 +1,160 @@
+{
+  "id": "bihar-caste-certificate",
+  "version": 1,
+  "kind": "service",
+  "name": {
+    "hi": "जाति प्रमाण पत्र (RTPS)",
+    "en": "Caste Certificate (RTPS)"
+  },
+  "aliases": [
+    "जाति प्रमाण पत्र",
+    "जाति प्रमाणपत्र",
+    "जाति का सर्टिफिकेट",
+    "कास्ट सर्टिफिकेट",
+    "jati praman patra",
+    "jaati praman patra",
+    "caste certificate",
+    "cast certificate",
+    "jati certificate",
+    "जाति बनवाना"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "सामान्य प्रशासन विभाग, बिहार सरकार",
+    "en": "General Administration Department, Government of Bihar"
+  },
+  "category": "certificate",
+  "keywords": [
+    "जाति",
+    "प्रमाण पत्र",
+    "आरटीपीएस",
+    "अंचल",
+    "caste",
+    "certificate",
+    "RTPS",
+    "circle officer",
+    "SC",
+    "ST",
+    "BC",
+    "EBC"
+  ],
+  "summary": {
+    "hi": "जाति प्रमाण पत्र बिहार लोक सेवा का अधिकार (RTPS) कानून के तहत अंचल स्तर पर बनता है। आवेदन RTPS काउंटर पर या serviceonline.bihar.gov.in पर ऑनलाइन किया जा सकता है।",
+    "en": "Caste certificates are issued at circle (anchal) level under the Bihar Right to Public Services (RTPS) Act. Apply at an RTPS counter or online at serviceonline.bihar.gov.in."
+  },
+  "eligibility": [
+    {
+      "hi": "किसी व्यक्ति की जाति उसके पिता की जाति के आधार पर तय होती है, पति की जाति के आधार पर नहीं।",
+      "en": "A person's caste is determined by the father's caste, not by the husband's caste."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "जाति प्रमाण पत्र की वैधता हमेशा बनी रहती है।",
+      "en": "A caste certificate remains valid permanently."
+    },
+    {
+      "hi": "अंचल स्तर पर अंचलाधिकारी 10 कार्य दिवस में प्रमाण पत्र देते हैं। अपील अनुमंडल पदाधिकारी के पास (15 कार्य दिवस) और पुनर्विचार जिलाधिकारी के पास (15 कार्य दिवस) होता है।",
+      "en": "At circle level the Circle Officer is the designated public servant (10 working days). Appeal lies with the Sub-Division Officer (15 working days) and review with the District Magistrate (15 working days)."
+    }
+  ],
+  "questions": [
+    {
+      "id": "lives_in_bihar",
+      "ask": {
+        "hi": "क्या आप बिहार में रहते हैं और यहीं प्रमाण पत्र बनवाना चाहते हैं?",
+        "en": "Do you live in Bihar and want the certificate issued here?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "आवेदन पत्र (प्रपत्र-I)",
+        "en": "Application form (Form-I)"
+      }
+    },
+    {
+      "name": {
+        "hi": "स्व-घोषणा / स्वयं शपथ-पत्र — सामान्य वर्ग के लिए प्रपत्र-II, अनुसूचित जाति/जनजाति के लिए प्रपत्र-III, पिछड़ा/अत्यंत पिछड़ा वर्ग के लिए प्रपत्र-V",
+        "en": "Self-affidavit — Form-II (General), Form-III (SC/ST), Form-V (BC/EBC)"
+      }
+    },
+    {
+      "name": {
+        "hi": "पहचान का प्रमाण — आधार (OTP से सत्यापन) या भारत निर्वाचन आयोग द्वारा मान्य 12 पहचान पत्रों में से कोई एक",
+        "en": "Identity proof — Aadhaar (OTP verification) or any one of the 12 identity documents accepted by the Election Commission of India"
+      },
+      "note": {
+        "hi": "आधार से सिर्फ आपकी पहचान साबित होती है, जाति नहीं। जाति का निर्धारण शपथ-पत्र और कर्मचारी द्वारा स्थल जाँच (फील्ड सत्यापन) से होता है।",
+        "en": "Aadhaar establishes identity only, not caste. Caste is established through the self-affidavit and the field verification done by the office."
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "निर्धारित आवेदन प्रपत्र भरकर पंचायत/अंचल/प्रखंड/अनुमंडल/जिला स्तर के RTPS काउंटर पर कार्यपालक सहायक को जमा करें।",
+      "en": "Fill the prescribed form and submit it to the Executive Assistant at an RTPS counter at panchayat/circle/block/sub-division/district level."
+    },
+    {
+      "hi": "काउंटर पर आपका फोटो लिया जाएगा और आधार नंबर देने पर आधार से जुड़े मोबाइल पर OTP से सत्यापन होगा। पावती (रसीद) ज़रूर लें।",
+      "en": "Your photo is captured at the counter; if you give an Aadhaar number, an OTP is sent to the Aadhaar-linked mobile for verification. Collect the acknowledgement."
+    },
+    {
+      "hi": "ऑनलाइन: serviceonline.bihar.gov.in पर रजिस्टर करें, संबंधित सेवा चुनें, फॉर्म भरें, फोटो और शपथ-पत्र लगाएँ, सबमिट करके पावती डाउनलोड करें।",
+      "en": "Online: register on serviceonline.bihar.gov.in, choose the service, fill the form, attach photo and affidavit, submit and download the acknowledgement."
+    },
+    {
+      "hi": "पावती में लिखी समय-सीमा के बाद प्रमाण पत्र RTPS काउंटर से लें या वेबसाइट पर लॉगिन करके डाउनलोड करें।",
+      "en": "After the period shown on the acknowledgement, collect the certificate at the RTPS counter or download it after logging in."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "RTPS काउंटर (पंचायत / अंचल / प्रखंड / अनुमंडल / जिला)",
+      "en": "RTPS counter (panchayat / circle / block / sub-division / district)"
+    },
+    {
+      "hi": "ऑनलाइन: serviceonline.bihar.gov.in",
+      "en": "Online: serviceonline.bihar.gov.in"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "exceptions": [
+    {
+      "hi": "अनुमंडल या जिला स्तर का जाति प्रमाण पत्र, अंचल स्तर से जारी प्रमाण पत्र के आधार पर अलग से बनता है।",
+      "en": "Sub-division or district level caste certificates are issued separately on the basis of the certificate already issued at the lower level."
+    },
+    {
+      "hi": "RTPS सूची में जाति, आय और आवास प्रमाण पत्र के लिए \"तत्काल सेवा\" भी है (अंचल स्तर, 2 कार्य दिवस)।",
+      "en": "The RTPS list also has a \"Tatkal Service\" for caste, income and residence certificates (circle level, 2 working days)."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_GAD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of General Administration Department (GAD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "1. Caste Certificate | Circle Officer level | Form-I | Form- II Self-Affidavit (General) Form- III Self-Affidavit (SC/ST) Form-V Self-Affidavit (BC/ OBC) | ... | Circle Officer level (10) | Sub-Division Officer (15) | District Magistrate (15)"
+    },
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/GAD_points.pdf",
+      "title": "RTPS GAD — आवश्यक सूचना (important points)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer partly garbled; reading of points 1–2) व्यक्ति विशेष की जाति का निर्धारण उसके पिता की जाति के आधार पर होता है, पति की जाति के आधार पर नहीं | जाति प्रमाण-पत्र की वैधता हमेशा बनी रहती है |"
+    },
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_Quick_Reference.pdf",
+      "title": "Bihar RTPS Quick Reference (Bihar Administrative Reforms Mission Society)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer partly garbled; reading) सेवा विशेष के लिए आधार नंबर मांगे जाने पर आवेदक के आधार में पंजीकृत मोबाइल नंबर पर OTP भेज कर सत्यापन कराया जाना, या भारत निर्वाचन आयोग द्वारा स्वीकृत 12 पहचान पत्रों में से कोई एक upload करना |"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant from official RTPS PDFs fetched 2026-11-09; needs human review. (1) The RTPS PDFs are undated — confirm forms (Form-I, II, III, V) and timelines (10/15/15 working days, Tatkal 2 days) are current on serviceonline.bihar.gov.in or at a circle office. (2) Hindi text in all three PDFs is a legacy-font text layer that extracts garbled; the Hindi fields here are plain-language translations written by the drafter from the English table and a careful reading — do not treat the Hindi excerpts as exact quotes. (3) The Aadhaar note ('identity, not caste') is editorial guidance consistent with the Quick Reference (Aadhaar or one of 12 ECI identity documents for identity; field verification by the office) — reviewer should confirm wording. (4) The source does not list any other supporting documents (e.g. land records, old certificates of family members); offices may ask for them in practice — confirm before adding. (5) Fee not stated in the sources; fees_note omitted."
+  }
+}

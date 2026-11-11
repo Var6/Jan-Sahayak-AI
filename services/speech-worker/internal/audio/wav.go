@@ -66,8 +66,8 @@ func ParseHeader(b []byte) (info Info, dataOff, dataLen int, err error) {
 				return info, 0, 0, ErrBadWAV
 			}
 			size -= size % 2
-			if info.Channels > 0 && info.Bits > 0 {
-				info.Samples = size / (info.Channels * info.Bits / 8)
+			if frame := info.Channels * info.Bits / 8; frame > 0 {
+				info.Samples = size / frame
 			}
 			return info, body, size, nil
 		}
@@ -128,4 +128,52 @@ func EncodeMono16(samples []float32, rate int) []byte {
 		binary.LittleEndian.PutUint16(b[44+2*i:], uint16(int16(v)))
 	}
 	return b
+}
+
+// halfbandTaps is a 31-tap Hamming-windowed sinc low-pass with its cutoff
+// just below the post-decimation Nyquist frequency (0.225 × input rate).
+var halfbandTaps = func() []float64 {
+	const n = 31
+	const fc = 0.225
+	h := make([]float64, n)
+	sum := 0.0
+	for i := range h {
+		x := float64(i) - float64(n-1)/2
+		v := 2 * fc
+		if x != 0 {
+			v = math.Sin(2*math.Pi*fc*x) / (math.Pi * x)
+		}
+		v *= 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(n-1))
+		h[i] = v
+		sum += v
+	}
+	for i := range h {
+		h[i] /= sum
+	}
+	return h
+}()
+
+// Downsample halves the sample rate (low-pass filter, then keep every
+// second sample) while rate is even and at least twice maxRate, so 44.1 kHz
+// becomes 22.05 kHz for maxRate 22050. Other rates are returned unchanged.
+func Downsample(samples []float32, rate, maxRate int) ([]float32, int) {
+	for maxRate > 0 && rate%2 == 0 && rate/2 >= maxRate && len(samples) > 0 {
+		h := halfbandTaps
+		half := len(h) / 2
+		out := make([]float32, (len(samples)+1)/2)
+		for o := range out {
+			c := 2 * o
+			acc := 0.0
+			for k, tap := range h {
+				i := c + k - half
+				if i < 0 || i >= len(samples) {
+					continue
+				}
+				acc += tap * float64(samples[i])
+			}
+			out[o] = float32(acc)
+		}
+		samples, rate = out, rate/2
+	}
+	return samples, rate
 }

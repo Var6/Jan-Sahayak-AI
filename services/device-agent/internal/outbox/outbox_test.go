@@ -156,6 +156,9 @@ func TestRecoverInterruptedAfterPowerLoss(t *testing.T) {
 	}
 }
 
+// Decision 1: transport failures never consume attempts; per-event verdicts
+// do. (This test previously used RetryBatch to exhaust attempts, which is
+// exactly the behaviour that stranded events on offline kiosks.)
 func TestBackoffAndGiveUpKeepsRow(t *testing.T) {
 	ctx := context.Background()
 	cfg := DefaultConfig
@@ -165,15 +168,38 @@ func TestBackoffAndGiveUpKeepsRow(t *testing.T) {
 		t.Fatalf("backoff %v %v %v", o.Backoff(1), o.Backoff(2), o.Backoff(40))
 	}
 	id, _ := o.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	// Many transport failures: still PENDING, attempts untouched, due at once.
+	for i := 0; i < 10; i++ {
+		batch, evs, _ := o.Claim(ctx, 10)
+		if len(evs) != 1 {
+			t.Fatalf("transport retry %d: nothing claimed", i)
+		}
+		if err := o.RetryBatch(ctx, batch, "network down"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if st, n := state(t, s, id), attempts(t, s, id); st != Pending || n != 0 {
+		t.Fatalf("after transport failures: state %s attempts %d", st, n)
+	}
+	// Per-event verdicts (verified ack without a durable result for us).
 	for i := 0; i < 3; i++ {
 		batch, evs, _ := o.Claim(ctx, 10)
 		if len(evs) != 1 {
-			t.Fatalf("attempt %d: nothing claimed (backoff not elapsed?)", i)
+			t.Fatalf("verdict %d: nothing claimed (backoff not elapsed?)", i)
 		}
-		// Claimed again too early must return nothing.
-		_ = o.RetryBatch(ctx, batch, "network down")
-		if _, again, _ := o.Claim(ctx, 10); len(again) != 0 && i < 2 {
-			t.Fatal("claimed during backoff")
+		out, err := o.ApplyAck(ctx, batch, map[string]syncproto.Result{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i < 2 {
+			if out.Retried != 1 {
+				t.Fatalf("verdict %d: %+v", i, out)
+			}
+			if _, again, _ := o.Claim(ctx, 10); len(again) != 0 {
+				t.Fatal("claimed during backoff")
+			}
+		} else if out.Failed != 1 {
+			t.Fatalf("last verdict should fail the event: %+v", out)
 		}
 		clk.add(cfg.MaxBackoff)
 	}
@@ -183,6 +209,183 @@ func TestBackoffAndGiveUpKeepsRow(t *testing.T) {
 	_, d, _ := o.Housekeep(ctx)
 	if d != 0 || state(t, s, id) != Failed {
 		t.Fatal("FAILED rows must never be deleted")
+	}
+	// Auto-requeue only after FailedRequeueAfter (24 h) since failing.
+	if r, err := o.Maintain(ctx, time.Minute); err != nil || r.FailedRequeued != 0 || state(t, s, id) != Failed {
+		t.Fatalf("requeued too early: %+v %v", r, err)
+	}
+	clk.add(DefaultConfig.FailedRequeueAfter)
+	if r, err := o.Maintain(ctx, time.Minute); err != nil || r.FailedRequeued != 1 {
+		t.Fatalf("auto requeue: %+v %v", r, err)
+	}
+	if st, n := state(t, s, id), attempts(t, s, id); st != Pending || n != 0 {
+		t.Fatalf("after auto requeue: state %s attempts %d", st, n)
+	}
+}
+
+func attempts(t *testing.T, s *store.Store, id string) int {
+	t.Helper()
+	var n int
+	if err := s.DB.QueryRow(`SELECT attempts FROM outbox_events WHERE id=?`, id).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func TestRejectedIsAutoRequeuedButConflictIsNot(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	a, _ := o.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	b, _ := o.Enqueue(ctx, nil, "x", map[string]int{"b": 1})
+	batch, _, _ := o.Claim(ctx, 10)
+	if _, err := o.ApplyAck(ctx, batch, map[string]syncproto.Result{
+		a: {ID: a, Status: syncproto.StatusConflict, Reason: "different hash"},
+		b: {ID: b, Status: syncproto.StatusRejected, Reason: "schema"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	clk.add(DefaultConfig.FailedRequeueAfter + time.Second)
+	if _, err := o.Maintain(ctx, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if state(t, s, a) != Conflict || state(t, s, b) != Pending {
+		t.Fatalf("got %s %s", state(t, s, a), state(t, s, b))
+	}
+}
+
+// Finding 7: rows left UPLOADING because ApplyAck/RetryBatch could not be
+// applied are re-queued on the next sync pass, not only at restart.
+func TestMaintainRequeuesStaleUploading(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	id, _ := o.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	if _, evs, _ := o.Claim(ctx, 10); len(evs) != 1 {
+		t.Fatal("claim")
+	}
+	if r, _ := o.Maintain(ctx, time.Minute); r.StaleUploading != 0 || state(t, s, id) != Uploading {
+		t.Fatalf("fresh claim must not be stale: %+v", r)
+	}
+	clk.add(2 * time.Minute)
+	if r, _ := o.Maintain(ctx, time.Minute); r.StaleUploading != 1 || state(t, s, id) != Pending {
+		t.Fatalf("stale claim not requeued: %+v %s", r, state(t, s, id))
+	}
+}
+
+// Finding 14: a backwards wall-clock jump (Pi without RTC battery) must not
+// delay retries or housekeeping by the size of the jump.
+func TestBackwardsClockJumpIsCapped(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	id, _ := o.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	batch, _, _ := o.Claim(ctx, 10)
+	if _, err := o.ApplyAck(ctx, batch, map[string]syncproto.Result{}); err != nil { // retry in 30 s
+		t.Fatal(err)
+	}
+	clk.add(-30 * 24 * time.Hour) // clock jumps a month back
+	if r, err := o.Maintain(ctx, time.Minute); err != nil || r.ClockCapped != 1 {
+		t.Fatalf("cap: %+v %v", r, err)
+	}
+	clk.add(DefaultConfig.MaxBackoff)
+	if _, evs, _ := o.Claim(ctx, 10); len(evs) != 1 || evs[0].ID != id {
+		t.Fatalf("event not due within MaxBackoff after a backwards jump: %v", evs)
+	}
+	_ = s
+}
+
+func TestTimestampsAreFixedWidth(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	clk.add(500 * time.Millisecond) // a value whose RFC3339Nano form is shorter
+	id, _ := o.Enqueue(ctx, nil, "x", map[string]int{"a": 1})
+	var next string
+	if err := s.DB.QueryRow(`SELECT next_attempt_at FROM outbox_events WHERE id=?`, id).Scan(&next); err != nil {
+		t.Fatal(err)
+	}
+	if len(next) != len(TimeLayout) {
+		t.Fatalf("next_attempt_at %q is not fixed width", next)
+	}
+	if _, err := time.Parse(time.RFC3339Nano, next); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHousekeepDeletesInChunks(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	const n = 2*chunk + 7
+	// Bulk-load acknowledged rows directly (driving 2,007 events through
+	// Claim/ApplyAck one by one is slow under -race and tests nothing new).
+	at := ts(clk.now())
+	if _, err := s.DB.Exec(`WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM c WHERE i < ?)
+		INSERT INTO outbox_events (id, type, payload, payload_sha256, created_at, next_attempt_at)
+		SELECT printf('ev-%05d', i), 'x', '{}', 'h', ?, ? FROM c`, n, at, at); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`UPDATE outbox_events SET state='UPLOADING'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`UPDATE outbox_events SET state='ACKNOWLEDGED', ack_receipt='r', acked_at=?`, at); err != nil {
+		t.Fatal(err)
+	}
+	clk.add(DefaultConfig.AckRetention + time.Second)
+	p, d, err := o.Housekeep(ctx)
+	if err != nil || p != n || d != n {
+		t.Fatalf("p=%d d=%d err=%v", p, d, err)
+	}
+	if o.Full(ctx) {
+		t.Fatal("empty outbox reported full")
+	}
+	var left int
+	_ = s.DB.QueryRow(`SELECT n FROM outbox_counter`).Scan(&left)
+	if left != 0 {
+		t.Fatalf("counter %d after deleting everything", left)
+	}
+}
+
+// Finding 11 / OFFLINE_SYNC.md: session rows are pruned after the retention
+// window, but only once no unacknowledged event refers to them.
+func TestPruneSessions(t *testing.T) {
+	ctx := context.Background()
+	o, clk, s := setup(t, DefaultConfig)
+	old := clk.now().Add(-100 * 24 * time.Hour).Format(time.RFC3339Nano)
+	recent := clk.now().Add(-10 * 24 * time.Hour).Format(time.RFC3339Nano)
+	sids := map[string]string{
+		"11111111-1111-4111-8111-111111111111": old,    // ended event acked → prune
+		"22222222-2222-4222-8222-222222222222": old,    // ended event still pending → keep
+		"33333333-3333-4333-8333-333333333333": recent, // within retention → keep
+		"44444444-4444-4444-8444-444444444444": old,    // no event at all (power cut) → prune
+	}
+	for id, at := range sids {
+		if _, err := s.DB.Exec(`INSERT INTO sessions(id, started_at, language) VALUES (?,?, 'hi')`, id, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	acked, _ := o.Enqueue(ctx, nil, "session.ended", map[string]string{"session_id": "11111111-1111-4111-8111-111111111111"})
+	_, _ = o.Enqueue(ctx, nil, "session.ended", map[string]string{"session_id": "22222222-2222-4222-8222-222222222222"})
+	batch, evs, _ := o.Claim(ctx, 10)
+	res := map[string]syncproto.Result{}
+	for _, e := range evs {
+		if e.ID == acked {
+			res[e.ID] = okResult(e)
+		}
+	}
+	if _, err := o.ApplyAck(ctx, batch, res); err != nil {
+		t.Fatal(err)
+	}
+	n, err := o.PruneSessions(ctx)
+	if err != nil || n != 2 {
+		t.Fatalf("pruned %d err %v", n, err)
+	}
+	var left []string
+	rows, _ := s.DB.Query(`SELECT id FROM sessions ORDER BY id`)
+	for rows.Next() {
+		var id string
+		_ = rows.Scan(&id)
+		left = append(left, id)
+	}
+	rows.Close()
+	if len(left) != 2 || left[0][0] != '2' || left[1][0] != '3' {
+		t.Fatalf("left %v", left)
 	}
 }
 
@@ -200,8 +403,8 @@ func TestFullOutboxRefusesNewButKeepsOld(t *testing.T) {
 		t.Fatalf("want ErrFull, got %v", err)
 	}
 	st, _ := o.Stats(ctx)
-	if st.Total != 3 {
-		t.Fatalf("total %d", st.Total)
+	if st.Total != 3 || !st.Full || !o.Full(ctx) {
+		t.Fatalf("total %d full %v/%v", st.Total, st.Full, o.Full(ctx))
 	}
 }
 

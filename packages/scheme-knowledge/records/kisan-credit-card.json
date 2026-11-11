@@ -1,0 +1,114 @@
+{
+  "id": "kisan-credit-card",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "किसान क्रेडिट कार्ड (KCC)",
+    "en": "Kisan Credit Card (KCC)"
+  },
+  "aliases": [
+    "किसान क्रेडिट कार्ड",
+    "केसीसी",
+    "KCC",
+    "kisan credit card",
+    "kcc loan",
+    "खेती के लिए लोन",
+    "फसल ऋण",
+    "kheti ke liye loan",
+    "पशुपालन लोन",
+    "मछली पालन लोन"
+  ],
+  "state": "",
+  "department": {
+    "hi": "भारतीय रिज़र्व बैंक के निर्देशों के तहत बैंक",
+    "en": "Banks, under Reserve Bank of India directions"
+  },
+  "category": "farmer",
+  "keywords": [
+    "किसान",
+    "खेती",
+    "लोन",
+    "ऋण",
+    "बँटाईदार",
+    "पशुपालन",
+    "मछली",
+    "farmer",
+    "crop loan",
+    "tenant",
+    "sharecropper",
+    "animal husbandry",
+    "fisheries"
+  ],
+  "summary": {
+    "hi": "किसान क्रेडिट कार्ड से बैंक किसानों को खेती और उससे जुड़े कामों (पशुपालन, मछली पालन) की ज़रूरतों के लिए एक साथ (कम्पोज़िट) ऋण सुविधा देते हैं। बँटाईदार, मौखिक पट्टेदार और किसानों के स्वयं सहायता समूह भी पात्र हैं।",
+    "en": "Through the Kisan Credit Card, banks give farmers a composite credit facility for farming and allied activities (animal husbandry, fisheries). Tenant farmers, oral lessees, sharecroppers and farmer SHGs/JLGs are also eligible."
+  },
+  "eligibility": [
+    {
+      "hi": "फसल उगाने के लिए: मालिक किसान (अकेले या संयुक्त), किरायेदार किसान, मौखिक पट्टेदार और बँटाईदार, और ऐसे किसानों के स्वयं सहायता समूह (SHG) / संयुक्त देयता समूह (JLG)।",
+      "en": "For crop cultivation: owner cultivators (individual/joint), tenant farmers, oral lessees and sharecroppers, and SHGs/JLGs of such farmers."
+    },
+    {
+      "hi": "संबद्ध गतिविधियों के लिए: पशुपालक, मछुआरे, मछली पालक और संबद्ध काम करने वाले किसान (किरायेदार और बँटाईदार सहित)।",
+      "en": "For allied activities: animal husbandry farmers, fishers, fish farmers and farmers (incl. tenants and sharecroppers) undertaking allied activities."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "खेती और संबद्ध कामों की कार्यशील पूँजी और निवेश ज़रूरतों के लिए एक कम्पोज़िट ऋण सुविधा।",
+      "en": "A composite credit facility for working capital and investment needs of farming and allied activities."
+    },
+    {
+      "hi": "बैंक ₹2 लाख प्रति कर्ज़दार तक के कृषि ऋण पर कोलैटरल (गिरवी) और मार्जिन की माँग नहीं करेंगे।",
+      "en": "Banks waive collateral security and margin for agricultural loans up to ₹2 lakh per borrower."
+    },
+    {
+      "hi": "सीमांत किसानों के लिए ज़मीन की कीमत से जोड़े बिना ₹10,000 से ₹50,000 तक की लचीली सीमा (Flexi KCC)।",
+      "en": "For marginal farmers, a flexible limit of ₹10,000 to ₹50,000 (Flexi KCC) not linked to land value."
+    }
+  ],
+  "questions": [
+    {
+      "id": "does_farming_or_allied",
+      "ask": {
+        "hi": "क्या आप खेती करते हैं (अपनी ज़मीन, किराये या बँटाई पर) या पशुपालन/मछली पालन करते हैं?",
+        "en": "Do you farm (own land, leased or sharecropped) or do animal husbandry / fisheries?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [],
+  "alternative_evidence": [
+    {
+      "hi": "बँटाईदार और मौखिक पट्टेदार के लिए बैंक स्थानीय प्रशासन / पंचायत का खेती करने का प्रमाण पत्र मानेंगे; यह न मिल पाए तो ₹50,000 तक के ऋण के लिए खेती की जानकारी (कौन-सी ज़मीन, कौन-सी फसल) वाला शपथ-पत्र।",
+      "en": "For sharecroppers and oral lessees, banks accept a certificate of cultivation from the local administration / panchayat; where that is difficult, an affidavit of occupational status (land tilled / crops grown) for loans up to ₹50,000."
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "अपने इलाके के बैंक (वाणिज्यिक बैंक, ग्रामीण बैंक या सहकारी बैंक) की शाखा में KCC के लिए आवेदन करें।",
+      "en": "Apply for a KCC at a branch of a bank in your area (commercial, regional rural or cooperative bank)."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "बैंक शाखा (वाणिज्यिक बैंक / क्षेत्रीय ग्रामीण बैंक / सहकारी बैंक)",
+      "en": "Bank branch (commercial / regional rural / cooperative bank)"
+    }
+  ],
+  "official_url": "",
+  "sources": [
+    {
+      "url": "https://www.rbi.org.in/SCRIPTS/BS_ViewMasDirections.aspx?id=13522",
+      "title": "Reserve Bank of India [Commercial Banks - Kisan Credit Card (KCC) Scheme] Directions, 2026 (RBI/FIDD/2026-27/402, June 19, 2026)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "The following shall be eligible to avail credit for working capital requirements for cultivation of crops: (1) Farmers (individual / joint borrowers), who are owner cultivators; (2) Tenant farmers, oral lessees, and sharecroppers; and (3) Self-Help Groups (SHGs) and Joint Liability Groups (JLGs) ... Banks shall waive collateral security and margin requirements for agricultural loans including loans for allied activities up to ₹2 lakh per borrower. ... The Directions shall be applicable to loans sanctioned under the KCC Scheme with effect from January 01, 2027. ... Marginal farmers shall also be eligible for a flexible credit limit of ₹10,000 to ₹50,000 (as Flexi KCC) as per assessment of the bank without relating it to the value of the land. ... In case of loans to sharecroppers and oral lessees, banks shall accept certificates provided by local administration / panchayati raj institutions regarding the cultivation of crops by such borrowers. Where there are difficulties in getting certification ..., banks shall accept an affidavit submitted by such borrowers giving their occupational status (i.e., details of land tilled / crops grown), for loans up to ₹50,000."
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. EFFECTIVE DATE: the 2026 RBI Directions apply to KCC loans sanctioned from 01-01-2027; loans before that follow the 'extant guidelines' (older master circular, not fetched) — reviewer must check that the ₹2 lakh collateral-free limit, Flexi KCC and sharecropper affidavit rules also hold under the current (pre-2027) rules. Separate RBI directions exist for RRBs and Rural Co-operative Banks (not fetched). Interest subvention / prompt-repayment incentive (MISS) not covered — rates change yearly. official_url EMPTY because rbi.org.in is not a .gov.in/.nic.in host. Document list not stated in the directions — banks decide. PM-KISAN beneficiaries have a KCC form on pmkisan.gov.in (image-only PDF, not read). Review fix 2026-11-09 (correctness finding 4): re-fetched the 2026 Directions; Flexi KCC ₹10,000–₹50,000 (para 13(7)) and the sharecropper certificate/affidavit rule up to ₹50,000 (para 30) are now quoted. They are stated for loans from 01-01-2027 only — the pre-2027 check above still applies."
+  }
+}

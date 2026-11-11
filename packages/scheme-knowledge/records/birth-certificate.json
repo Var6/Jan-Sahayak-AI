@@ -1,0 +1,136 @@
+{
+  "id": "birth-certificate",
+  "version": 1,
+  "kind": "service",
+  "name": {
+    "hi": "जन्म प्रमाण पत्र (जन्म पंजीकरण)",
+    "en": "Birth Certificate (birth registration)"
+  },
+  "aliases": [
+    "जन्म प्रमाण पत्र",
+    "जन्म प्रमाणपत्र",
+    "बर्थ सर्टिफिकेट",
+    "janm praman patra",
+    "janam praman patra",
+    "birth certificate",
+    "birth registration",
+    "जन्म पंजीकरण"
+  ],
+  "state": "",
+  "department": {
+    "hi": "भारत के महारजिस्ट्रार (नागरिक पंजीकरण प्रणाली) / राज्य के मुख्य रजिस्ट्रार, जन्म एवं मृत्यु",
+    "en": "Registrar General of India (Civil Registration System) / State Chief Registrar of Births and Deaths"
+  },
+  "category": "identity_document",
+  "keywords": [
+    "जन्म",
+    "बच्चा",
+    "पंजीकरण",
+    "रजिस्ट्रेशन",
+    "birth",
+    "child",
+    "registration",
+    "CRS"
+  ],
+  "summary": {
+    "hi": "जन्म का पंजीकरण उसी जगह होता है जहाँ जन्म हुआ। जन्म के 21 दिनों के अंदर सूचना देने पर कोई शुल्क नहीं लगता और सूचना देने वाले को एक प्रति मुफ्त मिलती है।",
+    "en": "A birth is registered where it took place. If reported within 21 days, no fee is charged and the informant gets one free copy of the certificate."
+  },
+  "eligibility": [
+    {
+      "hi": "भारत में हुए हर जन्म का पंजीकरण अनिवार्य है।",
+      "en": "Registration of every birth in India is compulsory."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "जन्म के 21 दिनों के अंदर पंजीकरण पर कोई शुल्क नहीं।",
+      "en": "No fee if registered within 21 days of birth."
+    },
+    {
+      "hi": "सूचना देने वाले को जन्म प्रमाण पत्र की एक प्रति मुफ्त मिलती है; और प्रतियाँ तय शुल्क देकर मिलती हैं।",
+      "en": "One free copy of the birth certificate is given to the informant; more copies are available on paying the prescribed fee."
+    },
+    {
+      "hi": "जन्म प्रमाण पत्र स्कूल में दाख़िले, नौकरी में उम्र के प्रमाण, शादी के समय उम्र के प्रमाण और मतदाता सूची में नाम जुड़वाने जैसे कामों में लगता है।",
+      "en": "The birth certificate is used for school admission, proof of age for jobs and marriage, and enrolment in electoral rolls."
+    }
+  ],
+  "questions": [
+    {
+      "id": "born_in_hospital",
+      "ask": {
+        "hi": "क्या बच्चे का जन्म अस्पताल या स्वास्थ्य केंद्र में हुआ था?",
+        "en": "Was the child born in a hospital or health centre?"
+      },
+      "kind": "yes_no"
+    },
+    {
+      "id": "within_21_days",
+      "ask": {
+        "hi": "क्या जन्म हुए 21 दिन से कम हुए हैं?",
+        "en": "Has it been less than 21 days since the birth?"
+      },
+      "kind": "yes_no"
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "अस्पताल/स्वास्थ्य केंद्र में जन्म हुआ हो तो उसकी सूचना वहाँ के प्रभारी चिकित्सा पदाधिकारी देते हैं। बड़े सरकारी अस्पतालों, CHC/PHC में पंजीकरण इकाई से ही प्रमाण पत्र मिल सकता है।",
+      "en": "For a birth in a hospital or health centre, the medical officer in charge reports it. Major government hospitals and CHCs/PHCs have registration units that issue the certificate."
+    },
+    {
+      "hi": "घर में जन्म हुआ हो तो घर के मुखिया या नज़दीकी रिश्तेदार को इलाके के रजिस्ट्रार/उप-रजिस्ट्रार को सूचना देनी होती है। आंगनवाड़ी सेविका, ANM, आशा भी सूचना दे सकती हैं।",
+      "en": "For a birth at home, the head of the household or nearest relative must report it to the area Registrar/Sub-Registrar. Anganwadi workers, ANMs and ASHAs can also report it."
+    },
+    {
+      "hi": "बिहार में जन्म प्रमाण पत्र RTPS काउंटर से भी जारी होता है, और नागरिक पंजीकरण प्रणाली (CRS) पोर्टल पर ऑनलाइन आवेदन भी किया जा सकता है।",
+      "en": "In Bihar, birth certificates are also issued from RTPS counters, and online applications can be made on the Civil Registration System (CRS) portal."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "जहाँ जन्म हुआ उस इलाके के जन्म-मृत्यु रजिस्ट्रार (ग्रामीण क्षेत्र में पंचायत/स्वास्थ्य आदि विभाग के अधिकारी, शहर में नगर निकाय)",
+      "en": "Registrar of Births and Deaths for the place of birth (rural: designated Panchayat/Health etc. officials; urban: municipal body)"
+    },
+    {
+      "hi": "RTPS काउंटर (बिहार)",
+      "en": "RTPS counter (Bihar)"
+    },
+    {
+      "hi": "ऑनलाइन: नागरिक पंजीकरण प्रणाली (CRS) पोर्टल",
+      "en": "Online: Civil Registration System (CRS) portal"
+    }
+  ],
+  "official_url": "https://dc.crsorgi.gov.in/",
+  "exceptions": [
+    {
+      "hi": "21 दिन के बाद भी पंजीकरण हो सकता है — कानून की धारा 13 के देरी से पंजीकरण के नियमों के तहत, तय शुल्क देकर।",
+      "en": "Registration after 21 days is still possible under the delayed registration provisions (Section 13 of the Act) on payment of the prescribed fee."
+    },
+    {
+      "hi": "बच्चे के नाम के बिना भी जन्म प्रमाण पत्र मिल सकता है; नाम 12 महीने के अंदर मुफ्त जुड़वाया जा सकता है, उसके बाद शुल्क लगता है।",
+      "en": "A birth certificate can be issued without the child's name; the name can be added free within 12 months, and later on payment of a fee."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://dc.crsorgi.gov.in/assets/download/FAQ_of_CRS_Latest.pdf",
+      "title": "Civil Registration System — FAQ (Office of the Registrar General, India)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "The normal period of 21 days (from the date of occurrence) has been prescribed for reporting the birth, death and still birth events. ... If event of a birth or death is reported for registration to the prescribed authority within the normal period of 21 days, no fee would be charged. ... One free copy of birth / death certificate is issued to the informant under Section 12 of the RBD Act. ... If any event of birth or death is not reported for registration within 21 days, the same can be reported any time under the Delayed Registration provisions prescribed under Section 13 of the Act with payment of fee prescribed."
+    },
+    {
+      "url": "https://serviceonline.bihar.gov.in/",
+      "title": "RTPS Bihar — service list (home page)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Issuance of Birth Certificate (From RTPS Counter) ... Online Application for Birth/Death Certificate (From CRS)"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. National rules from the CRS FAQ (RBD Act 1969 as amended 2023). Bihar-specific details are missing: who the Registrar is at panchayat level in Bihar, delayed-registration fee amounts, documents/affidavit required for delayed registration (after one year an order of an executive magistrate is typically needed under the Act — NOT in the fetched FAQ, so not stated). The CRS portal (dc.crsorgi.gov.in) is a single-page app; online process steps were not confirmed. Questions here have no ineligible_if — they only route the guidance. Review fix 2026-11-09 (correctness finding 4): the Section 13 delayed-registration sentence is now quoted from the CRS FAQ (Q3)."
+  }
+}

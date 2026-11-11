@@ -1,0 +1,67 @@
+# Speech worker (Go + cgo + sherpa-onnx): Silero VAD, IndicConformer-Hindi
+# STT and Supertonic-3 TTS on 127.0.0.1:8743. A native crash kills only
+# this process; systemd restarts it and the agent degrades to text meanwhile.
+# A hung native inference (engine slot held > 3x its timeout) makes the
+# worker exit(1) itself, so Restart=always covers hangs too; no WatchdogSec
+# is needed (the Go HTTP loop stays alive while a cgo call is stuck, so a
+# watchdog ping would not detect it anyway).
+# Restart policy: never give up. StartLimitIntervalSec=0 disables the start
+# rate limit, so a persistent startup error (GPIO not ready, DB permissions,
+# a bad model file) keeps being retried every RestartSec instead of leaving
+# the unit failed until someone reboots the kiosk. Pi OS bookworm ships
+# systemd 252, which has no RestartSteps/RestartMaxDelaySec, so the delay is
+# a modest fixed 5 s.
+[Unit]
+Description=Jan Sahayak speech worker (STT/TTS)
+After=local-fs.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jansahayak-ai
+Group=jansahayak-ai
+ExecStart=/opt/jan-sahayak/bin/speech-worker -addr 127.0.0.1:8743 -models-dir /opt/jan-sahayak/models -threads 3
+# sherpa-onnx / onnxruntime shared libraries (copied by install.sh)
+Environment=LD_LIBRARY_PATH=/opt/jan-sahayak/lib
+Restart=always
+RestartSec=5
+# HTTP shutdown 10 s + inference drain capped at 25 s, plus margin.
+TimeoutStopSec=45
+# Measured on the dev M1: 570 MiB peak RSS. Pi caps to be finalised after benchmarking.
+MemoryHigh=800M
+MemoryMax=900M
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=256
+UMask=0077
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @swap @reboot @debug
+CapabilityBoundingSet=
+AmbientCapabilities=
+# MemoryDenyWriteExecute is left off: onnxruntime's behaviour under it has
+# not been verified on the Pi yet.
+
+[Install]
+WantedBy=multi-user.target

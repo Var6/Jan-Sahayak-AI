@@ -1,0 +1,157 @@
+{
+  "id": "pm-ujjwala",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "प्रधानमंत्री उज्ज्वला योजना (PMUY / उज्ज्वला 2.0)",
+    "en": "Pradhan Mantri Ujjwala Yojana (PMUY / Ujjwala 2.0)"
+  },
+  "aliases": [
+    "उज्ज्वला योजना",
+    "उज्ज्वला",
+    "गैस कनेक्शन",
+    "मुफ्त गैस कनेक्शन",
+    "LPG connection",
+    "ujjwala",
+    "ujjwala yojana",
+    "PMUY",
+    "gas cylinder yojana",
+    "चूल्हा गैस"
+  ],
+  "state": "",
+  "department": {
+    "hi": "पेट्रोलियम एवं प्राकृतिक गैस मंत्रालय, भारत सरकार (तेल विपणन कंपनियाँ)",
+    "en": "Ministry of Petroleum and Natural Gas, Government of India (Oil Marketing Companies)"
+  },
+  "category": "women_child",
+  "keywords": [
+    "गैस",
+    "सिलेंडर",
+    "एलपीजी",
+    "चूल्हा",
+    "महिला",
+    "LPG",
+    "gas",
+    "cylinder",
+    "cooking"
+  ],
+  "summary": {
+    "hi": "प्रधानमंत्री उज्ज्वला योजना में वंचित परिवारों की वयस्क महिला के नाम बिना जमानत राशि (डिपॉज़िट-फ्री) LPG कनेक्शन मिलता है, साथ में पहली रिफिल और चूल्हा मुफ्त।",
+    "en": "PMUY gives a deposit-free LPG connection in the name of an adult woman from a deprived household, with the first refill and stove free."
+  },
+  "eligibility": [
+    {
+      "hi": "आवेदक वयस्क महिला हो (18 साल या उससे ज़्यादा)।",
+      "en": "The applicant is an adult woman (18 years or above)."
+    },
+    {
+      "hi": "इनमें से किसी वर्ग से हो: अनुसूचित जाति या अनुसूचित जनजाति परिवार, प्रधानमंत्री आवास योजना (ग्रामीण) लाभार्थी, अति पिछड़ा वर्ग, अंत्योदय अन्न योजना (AAY), चाय/पूर्व चाय बागान जनजाति, वनवासी, द्वीप/नदी द्वीप निवासी, SECC परिवार (AHL TIN), या 14-बिंदु घोषणा के अनुसार गरीब परिवार।",
+      "en": "Belongs to one of: SC household, ST household, PMAY (Gramin) beneficiary, Most Backward Classes, Antyodaya Anna Yojana (AAY), tea and ex-tea garden tribes, forest dwellers, people in islands/river islands, SECC households (AHL TIN), or poor household as per the 14-point declaration."
+    },
+    {
+      "hi": "उसी घर में पहले से कोई दूसरा LPG कनेक्शन न हो।",
+      "en": "No other LPG connection in the same household."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "भारत सरकार की नकद सहायता: 14.2 किलो सिलेंडर वाले कनेक्शन के लिए ₹1600 (5 किलो सिलेंडर के लिए ₹1150) — इसमें सिलेंडर की जमानत राशि, रेगुलेटर, पाइप, उपभोक्ता कार्ड और इंस्टॉलेशन शुल्क शामिल हैं।",
+      "en": "Government of India cash assistance: ₹1600 for a 14.2 kg cylinder connection (₹1150 for a 5 kg cylinder), covering cylinder security deposit, regulator, hose, consumer card and installation charges."
+    },
+    {
+      "hi": "डिपॉज़िट-फ्री कनेक्शन के साथ पहली LPG रिफिल और चूल्हा (हॉटप्लेट) दोनों मुफ्त।",
+      "en": "First LPG refill and stove (hotplate) free along with the deposit-free connection."
+    }
+  ],
+  "age_rule": {
+    "hi": "18 साल या उससे ज़्यादा (महिला आवेदक)",
+    "en": "18 years or above (woman applicant)"
+  },
+  "questions": [
+    {
+      "id": "adult_woman",
+      "ask": {
+        "hi": "क्या कनेक्शन घर की किसी 18 साल या उससे बड़ी महिला के नाम पर लेना है?",
+        "en": "Will the connection be in the name of a woman of the household aged 18 or above?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "already_has_lpg",
+      "ask": {
+        "hi": "क्या आपके घर में पहले से कोई गैस (LPG) कनेक्शन है?",
+        "en": "Does your household already have an LPG connection?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "KYC फॉर्म",
+        "en": "Know Your Customer (KYC) form"
+      }
+    },
+    {
+      "name": {
+        "hi": "जिस राज्य से आवेदन कर रहे हैं वहाँ का राशन कार्ड / परिवार की संरचना बताने वाला कोई राज्य सरकारी दस्तावेज़",
+        "en": "Ration card issued by the State of application / other State Government document certifying family composition"
+      },
+      "note": {
+        "hi": "प्रवासी (दूसरे राज्य से आए) आवेदक इसकी जगह प्रपत्र Annexure I में स्व-घोषणा दे सकते हैं।",
+        "en": "Migrant applicants can instead give a self-declaration in Annexure I."
+      }
+    },
+    {
+      "name": {
+        "hi": "लाभार्थी और ऊपर के दस्तावेज़ में दर्ज वयस्क परिवार सदस्यों का आधार",
+        "en": "Aadhaar of the beneficiary and adult family members listed in the above document"
+      }
+    },
+    {
+      "name": {
+        "hi": "पते का प्रमाण — उसी पते पर कनेक्शन चाहिए तो आधार ही पहचान और पते दोनों का प्रमाण है",
+        "en": "Proof of address — if the connection is needed at the same address, Aadhaar alone is enough as proof of identity and address"
+      }
+    },
+    {
+      "name": {
+        "hi": "बैंक खाता नंबर और IFSC",
+        "en": "Bank account number and IFSC"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "pmuy.gov.in पर ऑनलाइन आवेदन करें, या KYC फॉर्म और ज़रूरी कागज़ नज़दीकी LPG वितरक (गैस एजेंसी) पर जमा करें।",
+      "en": "Apply online on pmuy.gov.in, or submit the KYC form and required documents at the nearest LPG distributor."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "नज़दीकी LPG वितरक (गैस एजेंसी)",
+      "en": "Nearest LPG distributor (gas agency)"
+    },
+    {
+      "hi": "ऑनलाइन: pmuy.gov.in",
+      "en": "Online: pmuy.gov.in"
+    }
+  ],
+  "official_url": "https://www.pmuy.gov.in/",
+  "helpline": "14438",
+  "sources": [
+    {
+      "url": "https://www.pmuy.gov.in/about.html",
+      "title": "PMUY — About / Eligibility / Documents / Benefits",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Adult woman belonging to any of the following categories. SC Households, ST Households, Pradhan Mantri Awas Yojana (Gramin), Most Backward Classes, Antyodaya Anna Yojana (AAY), Tea and Ex- Tea Garden tribes, Forest Dwellers, People residing in Islands and River Islands, SECC Households (AHL TIN), Poor Household as per 14-point declaration. Applicant must have attained 18 years of age. There should not be any other LPG connections in the same household. ... Cash assistance for PMUY connections is provided by Government of India - Rs. 1600 (for a connection 14.2kg cylinder/ Rs. 1150 for a 5 kg cylinder). ... 14438 (Ujjwala Helpline) ... Ujjwala 2.0: Additional allocation of 1.6 Crore LPG Connections under PMUY scheme with special facility to migrant households."
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. The page says additional connections (target 10.6 crore) 'are currently being released' — confirm that new PMUY applications are still being accepted in Bihar before telling citizens to apply. Amounts (₹1600/₹1150) and free first refill/stove are from pmuy.gov.in — confirm current; refill subsidy amounts (change often) deliberately not included. The page also lists 1906 (LPG Emergency) and 14428 (toll free) — only 14438 (Ujjwala Helpline) is put in the record helpline; 1906 belongs in helplines.json if wanted. 'Most Backward Classes' is the page's wording; how it maps to Bihar's EBC list is not stated. Category 'women_child' chosen because the connection is in a woman's name (could also be 'subsidy'). Review fix 2026-11-09 (kb validate -strict): the \"Ujjwala 2.0\" name is now quoted from the same about.html page (re-fetched)."
+  }
+}

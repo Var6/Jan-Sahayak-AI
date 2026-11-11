@@ -120,8 +120,12 @@ type State struct {
 	Slots   map[string]string // answers collected in this session (bounded)
 	History []Turn            // last MaxHistory turns
 	Misses  int               // consecutive not-understood turns
-	Started time.Time
-	Scheme  string // scheme currently being discussed
+	// Distress is set when a low-confidence voice turn contained distress
+	// words; until a turn is understood, "please repeat" prompts also show
+	// the emergency number. It holds no citizen text.
+	Distress bool
+	Started  time.Time
+	Scheme   string // scheme currently being discussed
 	// Last is the previous reply (for "repeat", for validating tapped
 	// options and for matching spoken answers to offered options).
 	Last *Reply

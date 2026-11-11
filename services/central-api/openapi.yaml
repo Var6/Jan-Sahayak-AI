@@ -1,0 +1,893 @@
+openapi: 3.1.0
+info:
+  title: Jan Sahayak Central API
+  version: 1.0.0
+  description: |
+    Central server for Jan Sahayak kiosks.
+
+    **Device endpoints** are authenticated with Ed25519 request signatures
+    (contract: `internal/syncproto`, `internal/deviceapi`). Each request carries
+    `X-JS-Device`, `X-JS-Ts` (unix seconds, ±5 min), `X-JS-Nonce`
+    (16–64 chars `[A-Za-z0-9_-]`, single use) and `X-JS-Sig` = base64
+    Ed25519 signature over
+    `"JS1\n" + METHOD + "\n" + TARGET + "\n" + TS + "\n" + NONCE + "\n" + hex(sha256(body))`.
+    TARGET is the URL path, followed by `?` and the raw query string when the
+    request has one (`deviceapi.SignedTarget`), so query parameters such as
+    `?since` cannot be altered in transit; a request without a query (every
+    sync upload) signs exactly its path. A GET signs an empty body. Only devices
+    with status `active` are accepted. All authentication failures return 401
+    with code `unauthorized`, except a timestamp outside the skew window which
+    returns code `clock_skew` and header `X-JS-Server-Time`.
+
+    **Admin endpoints** use a server-side session: `POST /v1/admin/login` sets
+    cookie `js_admin` (32 random bytes, HttpOnly, SameSite=Strict, Secure in
+    production, Path=/v1/admin). Cross-origin browser requests are refused with
+    403 `csrf` (Go `http.CrossOriginProtection`). Every admin mutation writes an
+    audit row. Responses carry `Cache-Control: no-store`.
+
+    Roles: `viewer`, `device_admin`, `scheme_editor`, `scheme_reviewer`,
+    `auditor`, `admin` (admin satisfies every check). Any role may use read
+    endpoints marked "any role".
+
+    **Deployment:** the server listens on loopback over plain HTTP behind a
+    TLS reverse proxy (`deployment/server/Caddyfile`). If started with
+    `-admin-ui-dir`, a static admin dashboard export is served at `/admin/`
+    (GET/HEAD only, same-origin CSP, no directory listings).
+
+    Errors: `{"error": {"code": string, "message": string, "details"?: string[]}}`.
+servers:
+  - url: http://127.0.0.1:8750
+    description: local development (scripts/dev/central.sh)
+
+tags:
+  - name: device
+  - name: admin-auth
+  - name: admin
+
+paths:
+  /healthz:
+    get:
+      summary: Liveness
+      responses:
+        "200": { description: OK }
+  /readyz:
+    get:
+      summary: Readiness (database reachable)
+      responses:
+        "200": { description: Ready }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/sync/events:
+    post:
+      tags: [device]
+      summary: Upload a batch of outbox events
+      description: |
+        Validates the batch, then stores all valid events in ONE transaction
+        (`ON CONFLICT (id) DO NOTHING`) and answers with a signed `BatchAck`
+        containing exactly one result per request event:
+
+        * `accepted` — stored now; `receipt` is new.
+        * `duplicate` — already stored by this device with the same payload
+          hash; `receipt` is the ORIGINAL receipt.
+        * `conflict` — the id is already stored with a different hash (or by
+          another device); no receipt.
+        * `rejected` — failed validation (syncproto rules, unknown event
+          type/version, payload schema); never retried automatically.
+
+        Accepted event types: `session.ended` v1 and `dialogue.turn` v1
+        (schemas `SessionEnded`, `Turn`; unknown fields are rejected so no
+        free text can be stored). On any database error the server answers
+        503 and sends NO ack; the device keeps its events and retries.
+      security: [{ deviceSignature: [] }]
+      parameters: [{ $ref: "#/components/parameters/Device" }, { $ref: "#/components/parameters/Ts" }, { $ref: "#/components/parameters/Nonce" }, { $ref: "#/components/parameters/Sig" }]
+      requestBody:
+        required: true
+        description: At most 4 MiB, 1..200 events, each payload ≤ 16 KiB.
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BatchRequest" }
+      responses:
+        "200":
+          description: Signed acknowledgement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BatchAck" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/devices/heartbeat:
+    post:
+      tags: [device]
+      summary: Report device health
+      description: Stored as a heartbeat row. Minimum interval 20 s per device (429 otherwise).
+      security: [{ deviceSignature: [] }]
+      parameters: [{ $ref: "#/components/parameters/Device" }, { $ref: "#/components/parameters/Ts" }, { $ref: "#/components/parameters/Nonce" }, { $ref: "#/components/parameters/Sig" }]
+      requestBody:
+        required: true
+        description: At most 64 KiB.
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Heartbeat" }
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [server_time]
+                properties:
+                  server_time: { type: string, format: date-time }
+                  latest_bundle_version: { type: string, example: "2026-11-09.1" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/devices/knowledge-bundle:
+    get:
+      tags: [device]
+      summary: Fetch the latest published signed knowledge bundle
+      description: |
+        Returns the exact signed bytes stored at publish time. The device must
+        verify `signature` with `deviceapi.VerifyBundle` against its pinned
+        server keys before loading. Only records with status VERIFIED (shown as
+        fact) or NEEDS_REVIEW (shown as "not yet verified") are included; a
+        withdrawn VERIFIED version is never included. The signature covers the
+        query string. Any query parameter other than a single `since` → 400.
+      security: [{ deviceSignature: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Device" }
+        - { $ref: "#/components/parameters/Ts" }
+        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/Sig" }
+        - name: since
+          in: query
+          description: Bundle version the device already has. If it is the latest, 204 is returned.
+          schema: { type: string, pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[0-9]{1,6}$" }
+      responses:
+        "200":
+          description: Signed bundle
+          headers:
+            X-JS-Bundle-Version: { schema: { type: string } }
+            X-JS-Bundle-SHA256: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bundle" }
+        "204": { description: The device already has the latest bundle }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/admin/login:
+    post:
+      tags: [admin-auth]
+      summary: Log in (argon2id); sets the session cookie
+      description: |
+        There is no account lock. Every credential failure — unknown user,
+        wrong password, disabled user — returns the same 401
+        `bad_credentials` after the same work (argon2 verification and an
+        audit row). Attempts are delayed progressively by the recent failures
+        (15-minute window) of the client IP and of the submitted username,
+        whichever is larger: none for the first 3, then 0.5 s doubling to a
+        maximum of 8 s at 10 failures. 429 `throttled` = too many attempts in
+        flight from one IP (max 2) or overall; 503 `busy` = password hashing
+        capacity exhausted (one argon2 slot is reserved for clients with no
+        recent failures). Both answers are independent of the username.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Logged in
+          headers:
+            Set-Cookie: { schema: { type: string }, description: "js_admin=…; Path=/v1/admin; HttpOnly; SameSite=Strict; Secure" }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+                  expires_in: { type: integer, description: seconds (absolute lifetime) }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /v1/admin/logout:
+    post:
+      tags: [admin-auth]
+      summary: Delete the server-side session and clear the cookie
+      responses:
+        "204": { description: Logged out (also when no session) }
+  /v1/admin/me:
+    get:
+      tags: [admin-auth]
+      summary: Current user (any role)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { user: { $ref: "#/components/schemas/User" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/admin/analytics/summary:
+    get:
+      tags: [admin]
+      summary: Anonymous usage analytics (any role)
+      description: |
+        Computed from `session.ended` and `dialogue.turn` events. Days are IST
+        calendar days by event created_at (device clock). Default range is the
+        last 30 days; max 366 days.
+
+        Small-cell suppression: for every role except `admin`, any count from
+        1 to 4 is returned as `null`; when exactly one cell of an additive
+        group (languages, end reasons, days, resolutions, sources, category
+        turns / unresolved turns) is hidden, the next smallest is hidden too.
+        Averages and rates built on a hidden count are `null`. Zero is shown.
+        `suppression.applied` says whether this response was suppressed.
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date }, description: inclusive }
+        - { name: device_id, in: query, schema: { type: string, format: uuid } }
+        - { name: district, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyticsSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/devices:
+    get:
+      tags: [admin]
+      summary: Device registry with latest heartbeat summary (any role; max 1000)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices: { type: array, items: { $ref: "#/components/schemas/DeviceListItem" } }
+                  limit: { type: integer }
+    post:
+      tags: [admin]
+      summary: Register a device (device_admin)
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [id, public_key, name, district]
+              properties:
+                id: { type: string, format: uuid, description: from the device identity file }
+                public_key: { type: string, description: base64 Ed25519 public key (32 bytes) }
+                name: { type: string, maxLength: 100 }
+                district: { type: string, maxLength: 60 }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: { type: object, properties: { device: { $ref: "#/components/schemas/Device" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/admin/devices/{id}:
+    get:
+      tags: [admin]
+      summary: Device detail, last 20 heartbeats, sync statistics (any role)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device: { $ref: "#/components/schemas/Device" }
+                  last_heartbeat: { $ref: "#/components/schemas/HeartbeatRecord" }
+                  recent_heartbeats: { type: array, items: { $ref: "#/components/schemas/HeartbeatRecord" } }
+                  sync:
+                    type: object
+                    properties:
+                      events_total: { type: integer }
+                      events_24h: { type: integer }
+                      last_event_received_at: { type: string, format: date-time }
+                      heartbeats_kept: { type: integer }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/admin/devices/{id}/revoke:
+    post:
+      tags: [admin]
+      summary: Revoke a device key permanently (device_admin)
+      description: Stored events are kept. A revoked device cannot sync; a replacement must register a new identity.
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string, maxLength: 200 } } }
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema: { type: object, properties: { device: { $ref: "#/components/schemas/Device" } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/schemes:
+    get:
+      tags: [admin]
+      summary: List schemes with current version status (any role)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        current_version: { type: integer }
+                        status: { $ref: "#/components/schemas/RecordStatus" }
+                        kind: { type: string }
+                        category: { type: string }
+                        name_hi: { type: string }
+                        name_en: { type: string }
+                        updated_at: { type: string, format: date-time }
+                        latest_verified_version: { type: integer }
+                        withdrawn: { type: boolean, description: the latest VERIFIED version has been withdrawn (OUTDATED) }
+  /v1/admin/schemes/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" } }]
+    get:
+      tags: [admin]
+      summary: Current record and version history (latest 100) (any role)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  current: { $ref: "#/components/schemas/VersionMeta" }
+                  record: { $ref: "#/components/schemas/SchemeRecord" }
+                  history: { type: array, items: { $ref: "#/components/schemas/VersionMeta" } }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [admin]
+      summary: Save a draft version (scheme_editor)
+      description: |
+        Appends a new immutable version. Whatever the client sends, the stored
+        status is NEEDS_REVIEW, verification fields and last_verified are
+        cleared, and `record.version` is set by the server. The record must pass
+        `scheme.Record.Validate()` (422 with `details` otherwise).
+        `base_version` must equal the current version (0 for a new scheme),
+        otherwise 409.
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [base_version, record]
+              properties:
+                base_version: { type: integer, minimum: 0 }
+                change_note: { type: string, maxLength: 500 }
+                record: { $ref: "#/components/schemas/SchemeRecord" }
+      responses:
+        "200": { $ref: "#/components/responses/SchemeVersion" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /v1/admin/schemes/{id}/versions/{version}:
+    get:
+      tags: [admin]
+      summary: One version with its full record (any role)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  version: { $ref: "#/components/schemas/VersionMeta" }
+                  record: { $ref: "#/components/schemas/SchemeRecord" }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/admin/schemes/{id}/verify:
+    post:
+      tags: [admin]
+      summary: Human verification of the current NEEDS_REVIEW version (scheme_reviewer)
+      description: |
+        Appends a new VERIFIED version copied from the reviewed draft, with
+        verification.verified_by = reviewer user id, verified_at = now and
+        last_verified = today (IST). Four-eyes rule: the reviewer must not have
+        edited ANY NEEDS_REVIEW/UNVERIFIED version of this scheme since its last
+        VERIFIED version (403 `own_edit`) — e.g. A drafts, B edits on top, A
+        may not verify. Also enforced in the database (CHECK + trigger).
+        `version` must be the current version (409 otherwise). Audit-logged.
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [version]
+              properties:
+                version: { type: integer }
+                notes: { type: string, maxLength: 500 }
+                review_due: { type: string, format: date, description: future date }
+      responses:
+        "200": { $ref: "#/components/responses/SchemeVersion" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/schemes/{id}/withdraw:
+    post:
+      tags: [admin]
+      summary: Withdraw the live VERIFIED version (scheme_reviewer)
+      description: |
+        Marks the latest VERIFIED version OUTDATED by appending a new,
+        immutable OUTDATED version that copies it (verification.status
+        OUTDATED, verification.notes "OUTDATED: <reason>", edited_by = the
+        content author, withdrawn_by = the reviewer). From then on bundles
+        never carry the withdrawn version: they carry the latest NEEDS_REVIEW
+        version newer than it (a pending correction, shown as "not yet
+        verified") or nothing for that scheme. Any reviewer may withdraw.
+        `version` must be the current version (409 otherwise); 409 also when
+        there is no live VERIFIED version. Audit action `scheme.withdrawn`.
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [version, reason]
+              properties:
+                version: { type: integer }
+                reason: { type: string, minLength: 3, maxLength: 400 }
+      responses:
+        "200":
+          description: The new OUTDATED version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  version: { $ref: "#/components/schemas/VersionMeta" }
+                  withdrawn_version: { type: integer }
+                  record: { $ref: "#/components/schemas/SchemeRecord" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/bundles:
+    get:
+      tags: [admin]
+      summary: Published bundles, newest first (any role; max 100)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { bundles: { type: array, items: { $ref: "#/components/schemas/BundleMeta" } } } }
+    post:
+      tags: [admin]
+      summary: Publish a signed bundle (scheme_reviewer)
+      description: |
+        Per scheme: the latest VERIFIED version unless a later OUTDATED
+        (withdrawal) version exists; otherwise the latest NEEDS_REVIEW version
+        newer than the latest VERIFIED one; otherwise nothing. UNVERIFIED and
+        OUTDATED versions are never shipped. Version format `YYYY-MM-DD.N`
+        (IST). Empty body or `{}`.
+      security: [{ adminSession: [] }]
+      responses:
+        "201":
+          description: Published
+          content:
+            application/json:
+              schema: { type: object, properties: { bundle: { $ref: "#/components/schemas/BundleMeta" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/audit:
+    get:
+      tags: [admin]
+      summary: Audit log, newest first (auditor)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: before, in: query, schema: { type: string, format: uuid }, description: "page cursor (next_before of the previous page)" }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: target_type, in: query, schema: { type: string } }
+        - { name: target_id, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries: { type: array, items: { $ref: "#/components/schemas/AuditEntry" } }
+                  next_before: { type: string, format: uuid }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    deviceSignature:
+      type: apiKey
+      in: header
+      name: X-JS-Sig
+      description: Ed25519 request signature (see description above).
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: js_admin
+
+  parameters:
+    Device: { name: X-JS-Device, in: header, required: true, schema: { type: string, format: uuid } }
+    Ts: { name: X-JS-Ts, in: header, required: true, schema: { type: string }, description: unix seconds }
+    Nonce: { name: X-JS-Nonce, in: header, required: true, schema: { type: string, pattern: "^[A-Za-z0-9_-]{16,64}$" } }
+    Sig: { name: X-JS-Sig, in: header, required: true, schema: { type: string }, description: base64 Ed25519 signature }
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest: { $ref: "#/components/responses/Error" }
+    Unauthorized: { $ref: "#/components/responses/Error" }
+    Forbidden: { $ref: "#/components/responses/Error" }
+    TooLarge: { $ref: "#/components/responses/Error" }
+    Unavailable: { $ref: "#/components/responses/Error" }
+    SchemeVersion:
+      description: The stored version
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id: { type: string }
+              version: { $ref: "#/components/schemas/VersionMeta" }
+              record: { $ref: "#/components/schemas/SchemeRecord" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, enum: [bad_request, unauthorized, clock_skew, forbidden, csrf, not_found, conflict, too_large, too_frequent, invalid_record, own_edit, bad_credentials, throttled, busy, no_bundle, unavailable, internal] }
+            message: { type: string }
+            details: { type: array, items: { type: string } }
+
+    Event:
+      type: object
+      required: [id, type, schema_version, created_at, payload, payload_sha256]
+      properties:
+        id: { type: string, format: uuid, description: lowercase; device-generated idempotency key }
+        type: { type: string, enum: [session.ended, dialogue.turn] }
+        schema_version: { type: integer, const: 1 }
+        created_at: { type: string, format: date-time }
+        payload: { type: string, contentEncoding: base64, description: "raw JSON object bytes (SessionEnded or Turn), base64 in the JSON encoding" }
+        payload_sha256: { type: string, pattern: "^[0-9a-f]{64}$", description: of the raw payload bytes }
+    BatchRequest:
+      type: object
+      required: [batch_id, device_id, sent_at, events]
+      properties:
+        batch_id: { type: string, format: uuid }
+        device_id: { type: string, format: uuid, description: must equal X-JS-Device }
+        sent_at: { type: string, format: date-time }
+        events: { type: array, minItems: 1, maxItems: 200, items: { $ref: "#/components/schemas/Event" }, description: ids must be unique within the batch }
+    Result:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [accepted, duplicate, conflict, rejected] }
+        payload_sha256: { type: string }
+        receipt: { type: string, format: uuid }
+        reason: { type: string, maxLength: 200 }
+    BatchAck:
+      type: object
+      required: [batch_id, device_id, server_time, results, key_id, signature]
+      properties:
+        batch_id: { type: string }
+        device_id: { type: string }
+        server_time: { type: string, format: date-time }
+        results: { type: array, items: { $ref: "#/components/schemas/Result" } }
+        key_id: { type: string }
+        signature: { type: string, description: "base64 Ed25519 over syncproto.AckSigningBytes" }
+
+    SessionEnded:
+      type: object
+      additionalProperties: false
+      required: [session_id, language, started_at, ended_at, end_reason, turns]
+      properties:
+        session_id: { type: string, format: uuid, description: random, not linked to a person }
+        language: { type: string, enum: [hi, en] }
+        started_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time }
+        end_reason: { type: string, enum: [citizen_ended, inactivity_timeout, device_shutdown, error] }
+        turns: { type: integer, minimum: 0, maximum: 1000 }
+    Turn:
+      type: object
+      additionalProperties: false
+      required: [session_id, seq, language, source, intent, used_llm]
+      properties:
+        session_id: { type: string, format: uuid }
+        seq: { type: integer, minimum: 1, maximum: 1000 }
+        language: { type: string, enum: [hi, en] }
+        source: { type: string, enum: [voice, text, option] }
+        intent: { type: string, pattern: "^[a-z][a-z0-9_]{0,39}$" }
+        category: { type: string, description: a scheme.Categories value }
+        service: { type: string, description: scheme record id }
+        resolution: { type: string, enum: [answered, unverified_info, escalated, unresolved, redirected, crisis] }
+        used_llm: { type: boolean }
+
+    Heartbeat:
+      type: object
+      required: [device_id, sent_at, agent_version, overall, outbox, sync, resources]
+      properties:
+        device_id: { type: string, format: uuid }
+        sent_at: { type: string, format: date-time }
+        agent_version: { type: string, maxLength: 64 }
+        os: { type: string, maxLength: 64 }
+        bundle_version: { type: string, maxLength: 64 }
+        models: { type: object, maxProperties: 16, additionalProperties: { type: string } }
+        overall: { $ref: "#/components/schemas/HealthState" }
+        components:
+          type: array
+          maxItems: 32
+          items:
+            type: object
+            required: [name, state]
+            properties:
+              name: { type: string }
+              state: { $ref: "#/components/schemas/HealthState" }
+              critical: { type: boolean }
+              detail: { type: string, maxLength: 200 }
+        outbox:
+          type: object
+          properties:
+            pending: { type: integer }
+            uploading: { type: integer }
+            acknowledged: { type: integer }
+            delete_eligible: { type: integer }
+            failed: { type: integer }
+            conflict: { type: integer }
+            total: { type: integer }
+            capacity: { type: integer }
+            oldest_pending_at: { type: string, format: date-time }
+        sync:
+          type: object
+          properties:
+            last_success_at: { type: string, format: date-time }
+            consecutive_failures: { type: integer }
+        resources:
+          type: object
+          properties:
+            disk_free_bytes: { type: integer }
+            disk_total_bytes: { type: integer }
+            mem_available_bytes: { type: integer }
+            mem_total_bytes: { type: integer }
+            cpu_temp_c: { type: number }
+            throttled: { type: boolean }
+            uptime_seconds: { type: integer }
+    HealthState: { type: string, enum: [HEALTHY, DEGRADED, UNAVAILABLE, RECOVERING, REQUIRES_ATTENTION] }
+    HeartbeatRecord:
+      type: object
+      description: Stored heartbeat (flattened columns of device_heartbeats).
+      additionalProperties: true
+      properties:
+        received_at: { type: string, format: date-time }
+        device_time: { type: string, format: date-time }
+        agent_version: { type: string }
+        overall_health: { $ref: "#/components/schemas/HealthState" }
+        outbox_pending: { type: integer }
+        outbox_failed: { type: integer }
+        outbox_conflict: { type: integer }
+
+    Device:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        district: { type: string }
+        public_key: { type: string }
+        status: { type: string, enum: [active, revoked] }
+        registered_at: { type: string, format: date-time }
+        revoked_at: { type: string, format: date-time }
+        revoked_reason: { type: string }
+        last_seen_at: { type: string, format: date-time }
+    DeviceListItem:
+      allOf:
+        - { $ref: "#/components/schemas/Device" }
+        - type: object
+          properties:
+            last_heartbeat:
+              type: object
+              properties:
+                received_at: { type: string, format: date-time }
+                agent_version: { type: string }
+                bundle_version: { type: string }
+                overall_health: { $ref: "#/components/schemas/HealthState" }
+                outbox_pending: { type: integer }
+                outbox_failed: { type: integer }
+                outbox_conflict: { type: integer }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        display_name: { type: string }
+        roles: { type: array, items: { type: string, enum: [viewer, device_admin, scheme_editor, scheme_reviewer, auditor, admin] } }
+
+    RecordStatus: { type: string, enum: [VERIFIED, NEEDS_REVIEW, OUTDATED, UNVERIFIED] }
+    SchemeRecord:
+      type: object
+      description: "`internal/scheme.Record` (see Go type for the full field list). Validated with Record.Validate()."
+      required: [id, kind, name, category, summary, sources]
+      additionalProperties: true
+      properties:
+        id: { type: string }
+        version: { type: integer }
+        kind: { type: string, enum: [scheme, service] }
+        name: { $ref: "#/components/schemas/Text" }
+        category: { type: string }
+        state: { type: string, enum: ["", BR] }
+        summary: { $ref: "#/components/schemas/Text" }
+        sources: { type: array, minItems: 1, items: { type: object, properties: { url: { type: string }, title: { type: string }, accessed_on: { type: string, format: date } } } }
+        verification:
+          type: object
+          properties:
+            status: { $ref: "#/components/schemas/RecordStatus" }
+            verified_by: { type: string, description: reviewer user id }
+            verified_at: { type: string, format: date-time }
+            review_due: { type: string, format: date }
+            notes: { type: string }
+    Text:
+      type: object
+      properties: { hi: { type: string }, en: { type: string } }
+    VersionMeta:
+      type: object
+      properties:
+        version: { type: integer }
+        status: { $ref: "#/components/schemas/RecordStatus" }
+        edited_by: { type: string, description: username of the content author }
+        edited_at: { type: string, format: date-time }
+        verified_by: { type: string, description: username of the reviewer }
+        verified_at: { type: string, format: date-time }
+        withdrawn_by: { type: string, description: username of the reviewer who withdrew (OUTDATED versions only) }
+        based_on_version: { type: integer }
+        change_note: { type: string }
+    Bundle:
+      type: object
+      required: [bundle_version, created_at, records, key_id, signature]
+      properties:
+        bundle_version: { type: string }
+        created_at: { type: string, format: date-time }
+        records: { type: array, items: { $ref: "#/components/schemas/SchemeRecord" } }
+        key_id: { type: string }
+        signature: { type: string, description: "base64 Ed25519 over deviceapi.BundleSigningBytes" }
+    BundleMeta:
+      type: object
+      properties:
+        bundle_version: { type: string }
+        created_at: { type: string, format: date-time }
+        published_by: { type: string }
+        key_id: { type: string }
+        record_count: { type: integer }
+        verified_count: { type: integer }
+        sha256: { type: string }
+
+    AnalyticsSummary:
+      type: object
+      description: Counts are `null` when suppressed (see the endpoint description).
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        timezone: { type: string, const: Asia/Kolkata }
+        device_id: { type: string }
+        district: { type: string }
+        suppression:
+          type: object
+          properties:
+            applied: { type: boolean }
+            min_count: { type: integer, const: 5 }
+        sessions_total: { type: [integer, "null"] }
+        avg_turns_per_session: { type: [number, "null"] }
+        sessions_per_day: { type: array, items: { type: object, properties: { day: { type: string, format: date }, sessions: { type: [integer, "null"] } } } }
+        languages: { $ref: "#/components/schemas/Counts" }
+        end_reasons: { $ref: "#/components/schemas/Counts" }
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              category: { type: string }
+              turns: { type: [integer, "null"] }
+              sessions: { type: [integer, "null"] }
+              unresolved_turns: { type: [integer, "null"] }
+        turns_total: { type: [integer, "null"] }
+        turns_by_resolution: { $ref: "#/components/schemas/Counts" }
+        turns_by_source: { $ref: "#/components/schemas/Counts" }
+        turns_using_llm: { type: [integer, "null"] }
+        sessions_with_turns: { type: [integer, "null"] }
+        sessions_answered: { type: [integer, "null"], description: "≥1 turn with resolution answered" }
+        sessions_unresolved: { type: [integer, "null"], description: "no turn answered/unverified_info/escalated/crisis" }
+        resolution_rate: { type: [number, "null"], description: sessions_answered / sessions_with_turns }
+    Counts:
+      type: array
+      items: { type: object, properties: { key: { type: string }, count: { type: [integer, "null"] } } }
+
+    AuditEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        actor_user_id: { type: string, format: uuid }
+        actor: { type: string, description: "username, cli:<os user>, or anonymous (failed login for an unknown username; the name is not stored)" }
+        action: { type: string, example: scheme.verified }
+        target_type: { type: string }
+        target_id: { type: string }
+        details: { type: object }

@@ -1,0 +1,131 @@
+{
+  "id": "bihar-income-certificate",
+  "version": 1,
+  "kind": "service",
+  "name": {
+    "hi": "आय प्रमाण पत्र (RTPS)",
+    "en": "Income Certificate (RTPS)"
+  },
+  "aliases": [
+    "आय प्रमाण पत्र",
+    "आय प्रमाणपत्र",
+    "इनकम सर्टिफिकेट",
+    "aay praman patra",
+    "aay certificate",
+    "income certificate",
+    "income praman patra",
+    "आमदनी का सर्टिफिकेट"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "सामान्य प्रशासन विभाग, बिहार सरकार",
+    "en": "General Administration Department, Government of Bihar"
+  },
+  "category": "certificate",
+  "keywords": [
+    "आय",
+    "आमदनी",
+    "प्रमाण पत्र",
+    "आरटीपीएस",
+    "income",
+    "certificate",
+    "RTPS",
+    "circle officer"
+  ],
+  "summary": {
+    "hi": "आय प्रमाण पत्र बिहार RTPS कानून के तहत अंचल स्तर पर बनता है। यह जारी होने की तारीख से एक साल तक मान्य रहता है।",
+    "en": "Income certificates are issued at circle level under the Bihar RTPS Act. A certificate is valid for one year from the date of issue."
+  },
+  "eligibility": [
+    {
+      "hi": "बिहार के निवासी अपने अंचल के RTPS काउंटर पर या ऑनलाइन आवेदन कर सकते हैं।",
+      "en": "Residents of Bihar can apply at their circle's RTPS counter or online."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "आय प्रमाण पत्र जारी होने की तारीख से एक साल तक मान्य होता है।",
+      "en": "The income certificate is valid for one year from the date of issue."
+    },
+    {
+      "hi": "अंचल स्तर पर अंचलाधिकारी 10 कार्य दिवस में प्रमाण पत्र देते हैं। अपील अनुमंडल पदाधिकारी (15 कार्य दिवस), पुनर्विचार जिलाधिकारी (15 कार्य दिवस)।",
+      "en": "At circle level the Circle Officer issues it within 10 working days. Appeal: Sub-Division Officer (15 working days); review: District Magistrate (15 working days)."
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "आवेदन पत्र (प्रपत्र-XV)",
+        "en": "Application form (Form-XV)"
+      }
+    },
+    {
+      "name": {
+        "hi": "स्वयं शपथ-पत्र (प्रपत्र-XVII)",
+        "en": "Self-affidavit (Form-XVII)"
+      }
+    },
+    {
+      "name": {
+        "hi": "पहचान का प्रमाण — आधार (OTP से सत्यापन) या भारत निर्वाचन आयोग द्वारा मान्य 12 पहचान पत्रों में से कोई एक",
+        "en": "Identity proof — Aadhaar (OTP verification) or any one of the 12 identity documents accepted by the Election Commission of India"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "प्रपत्र भरकर नज़दीकी RTPS काउंटर पर जमा करें, फोटो खिंचवाएँ और पावती लें।",
+      "en": "Fill the form, submit it at the nearest RTPS counter, have your photo taken and collect the acknowledgement."
+    },
+    {
+      "hi": "या serviceonline.bihar.gov.in पर रजिस्टर करके ऑनलाइन आवेदन करें और पावती डाउनलोड करें।",
+      "en": "Or register on serviceonline.bihar.gov.in, apply online and download the acknowledgement."
+    },
+    {
+      "hi": "पावती में लिखी अवधि के बाद प्रमाण पत्र काउंटर से लें या ऑनलाइन डाउनलोड करें।",
+      "en": "After the period on the acknowledgement, collect the certificate at the counter or download it online."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "RTPS काउंटर (पंचायत / अंचल / प्रखंड / अनुमंडल / जिला)",
+      "en": "RTPS counter (panchayat / circle / block / sub-division / district)"
+    },
+    {
+      "hi": "ऑनलाइन: serviceonline.bihar.gov.in",
+      "en": "Online: serviceonline.bihar.gov.in"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "exceptions": [
+    {
+      "hi": "RTPS सूची में आय प्रमाण पत्र के लिए \"तत्काल सेवा\" भी है (अंचल स्तर, 2 कार्य दिवस)।",
+      "en": "The RTPS list also has a \"Tatkal Service\" for income certificates (circle level, 2 working days)."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_GAD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of General Administration Department (GAD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "3. Income Certificate | Circle Officer level | Form-XV | Form-XVII Self- Affidavit | Form-XVI | Circle Officer level (10) | Sub-Division Officer (15) | District Magistrate (15) ... 6. Cast, Residence and Income Certificate under “Tatkal Service” | Circle Officer level | ... | Circle Officer level (2) | Sub-Division Officer (15) | District Magistrate (15)"
+    },
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/GAD_points.pdf",
+      "title": "RTPS GAD — आवश्यक सूचना (important points)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer partly garbled; reading of point 4) आय प्रमाण-पत्र की मान्यता निर्गत तिथि से एक वर्ष के लिए होती है |"
+    },
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_Quick_Reference.pdf",
+      "title": "Bihar RTPS Quick Reference",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(reading) आधार में पंजीकृत मोबाइल नंबर पर OTP भेज कर सत्यापन कराया जाना, या भारत निर्वाचन आयोग द्वारा स्वीकृत 12 पहचान पत्रों में से कोई एक upload करना"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant from official RTPS PDFs fetched 2026-11-09; needs human review. RTPS PDFs are undated — confirm forms XV/XVII and timelines are current. Hindi text layers extract garbled; Hindi fields are drafter translations. The sources do not list proof-of-income documents (salary slip, land records etc.) — do not add any unless an official source states them. Some schemes require a certificate issued after a specific date (e.g. Bihar post-matric scholarship requires issue date on/after 01-04-2026) — that belongs in those scheme records, not here. Fee not stated. Review fix 2026-11-09 (correctness finding 4): the Tatkal (2 working days) row of the GAD table is now quoted."
+  }
+}

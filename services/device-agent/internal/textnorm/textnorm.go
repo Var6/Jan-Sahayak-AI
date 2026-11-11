@@ -106,7 +106,10 @@ func Fold(s string) string {
 		}
 	}
 	for _, r := range s {
+		r = canonRune(r)
 		switch {
+		case r < 0:
+			continue // format / zero-width character: removed, never a word break
 		case r == nukta || r == zwj || r == zwnj || r == '॑' || r == '॒':
 			continue // stripped
 		case r == '।' || r == '॥':

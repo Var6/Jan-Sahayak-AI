@@ -72,7 +72,7 @@ export interface TurnResult {
   audio_url?: string;
 }
 
-/** Response of POST /session/start and POST /session/{id}/end. */
+/** Response of POST /session/start, /session/{id}/greeting and /session/{id}/end. */
 export interface ReplyResult {
   session: SessionSnapshot;
   reply: Reply;
@@ -121,6 +121,12 @@ export interface SessionEvent {
   type: SessionEventType;
   session: SessionSnapshot;
   end_reason?: string;
+  /**
+   * Only on `session.started` for sessions started by the physical button:
+   * the greeting (no HTTP response carries it).
+   */
+  reply?: Reply;
+  audio_url?: string;
 }
 
 /** Payload of the SSE `health` event. */

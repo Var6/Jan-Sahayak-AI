@@ -2,7 +2,7 @@
 // only decides what the screen shows. The agent is the authority on session
 // state — the reducer mirrors snapshots from responses and SSE events.
 
-import { hasSession } from "../api/client";
+import { hasSession, safeAudioUrl } from "../api/client";
 import type { ConnState } from "../api/events";
 import type {
   Capabilities,
@@ -85,6 +85,7 @@ export type Action =
   | { type: "session"; session: SessionSnapshot }
   | { type: "started"; session: SessionSnapshot; reply: Reply | null; audioUrl: string | null }
   | { type: "languageChosen"; lang: Lang; keepGreeting: boolean }
+  | { type: "greeting"; sessionId: string; reply: Reply; audioUrl: string | null }
   | { type: "privacyAck" }
   | { type: "showReply"; reply: Reply; audioUrl: string | null; transcript?: Transcript | null }
   | { type: "turn"; result: TurnResult; audioUrl: string | null }
@@ -165,8 +166,17 @@ export function reducer(state: UiState, a: Action): UiState {
       if (state.session?.id && ev.session.id && ev.session.id !== state.session.id) {
         if (ev.type !== "session.started") return state;
       }
-      const next = applySnapshot(state, ev.session);
+      let next = applySnapshot(state, ev.session);
       if (!inSession(next.screen)) return next;
+      if (
+        ev.type === "session.started" &&
+        ev.reply &&
+        !next.greeting &&
+        (next.screen === "language" || next.screen === "privacy")
+      ) {
+        // Physical-button start: the greeting rides on the SSE event.
+        next = { ...next, greeting: { reply: ev.reply, audioUrl: safeAudioUrl(ev.audio_url) } };
+      }
       if (ev.type === "session.reminder") {
         return next.overlay === "final_warning" ? next : { ...next, overlay: "reminder" };
       }
@@ -196,6 +206,13 @@ export function reducer(state: UiState, a: Action): UiState {
         screen: "privacy",
         greeting: a.keepGreeting ? state.greeting : null,
       };
+
+    case "greeting":
+      // A fresh greeting (POST /greeting after a language change, or after
+      // the UI found a session without one). Only before the conversation.
+      if (state.session?.id !== a.sessionId) return state;
+      if (state.screen !== "language" && state.screen !== "privacy") return state;
+      return { ...state, greeting: { reply: a.reply, audioUrl: a.audioUrl } };
 
     case "privacyAck":
       if (state.screen !== "privacy") return state;
@@ -257,7 +274,14 @@ export function reducer(state: UiState, a: Action): UiState {
     case "reset":
       // Back to the attract screen; the controller re-reads /status, which
       // moves to the language screen if a new session is already open.
-      return { ...state, ...sessionCleared, session: null, lang: "hi", screen: "welcome", farewell: null };
+      return {
+        ...state,
+        ...sessionCleared,
+        session: null,
+        lang: "hi",
+        screen: "welcome",
+        farewell: null,
+      };
   }
 }
 

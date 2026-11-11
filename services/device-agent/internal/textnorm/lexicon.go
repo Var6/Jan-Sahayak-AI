@@ -54,6 +54,7 @@ const (
 	CHuman    = "human"
 	CKeyboard = "keyboard"
 	CMore     = "more"
+	CSecret   = "secret_word"
 
 	CEntertainment = "entertainment"
 	CChitChat      = "chit_chat"
@@ -64,63 +65,73 @@ const (
 	CRelationship  = "relationships"
 	CCoding        = "coding"
 	CNews          = "news"
+	// CIllegal: bribery and weapons. Always redirected, even when a welfare
+	// topic is mentioned in the same sentence ("loan ke liye rishwat").
+	CIllegal = "illegal"
+	// CVote: voting / elections. Overrides welfare topics ("pension wali
+	// party ko vote doon?") unless an ID card is meant ("voter card").
+	CVote = "vote"
 )
 
 // defaultLexicon maps concept → surface forms (any script; folded at build).
 var defaultLexicon = map[string][]string{
-	CLoan: {"लोन", "कर्ज", "कर्जा", "क़र्ज़", "ऋण", "उधार", "लोन्स", "loan", "loans", "lon", "laon", "lone", "karz", "karza", "karja", "karj", "karjaa", "rin", "rinn", "udhar", "udhaar", "credit", "क्रेडिट"},
-	CPension: {"पेंशन", "पेन्शन", "पेंसन", "पैंशन", "pension", "penshan", "pension", "pensan", "penson", "pention", "penshion"},
-	CElderly: {"वृद्धावस्था", "वृद्ध", "वृद्धजन", "बुजुर्ग", "बुज़ुर्ग", "बूढ़ा", "बूढ़ी", "बूढ़े", "बुढ़ापा", "बुढ़ापे", "old age", "elderly", "old", "senior citizen", "budhapa", "budhape", "vridha", "vriddha", "vridhavastha", "vriddhavastha", "buzurg", "bujurg", "budha", "budhi"},
-	CWidow: {"विधवा", "vidhwa", "vidhva", "widow", "widowed", "पति की मृत्यु", "पति नहीं रहे", "पति का देहांत"},
-	CDisability: {"दिव्यांग", "विकलांग", "दिव्यांगता", "विकलांगता", "divyang", "viklang", "disabled", "disability", "handicapped", "अंधा", "नेत्रहीन", "बहरा", "blind", "deaf"},
+	CLoan:        {"लोन", "कर्ज", "कर्जा", "क़र्ज़", "ऋण", "उधार", "लोन्स", "loan", "loans", "lon", "laon", "lone", "karz", "karza", "karja", "karj", "karjaa", "rin", "rinn", "udhar", "udhaar", "credit", "क्रेडिट"},
+	CPension:     {"पेंशन", "पेन्शन", "पेंसन", "पैंशन", "pension", "penshan", "pension", "pensan", "penson", "pention", "penshion"},
+	CElderly:     {"वृद्धावस्था", "वृद्ध", "वृद्धजन", "बुजुर्ग", "बुज़ुर्ग", "बूढ़ा", "बूढ़ी", "बूढ़े", "बुढ़ापा", "बुढ़ापे", "old age", "elderly", "old", "senior citizen", "budhapa", "budhape", "vridha", "vriddha", "vridhavastha", "vriddhavastha", "buzurg", "bujurg", "budha", "budhi"},
+	CWidow:       {"विधवा", "vidhwa", "vidhva", "widow", "widowed", "पति की मृत्यु", "पति नहीं रहे", "पति का देहांत"},
+	CDisability:  {"दिव्यांग", "विकलांग", "दिव्यांगता", "विकलांगता", "divyang", "viklang", "disabled", "disability", "handicapped", "अंधा", "नेत्रहीन", "बहरा", "blind", "deaf"},
 	CScholarship: {"छात्रवृत्ति", "स्कॉलरशिप", "स्कालरशिप", "वजीफा", "वज़ीफ़ा", "scholarship", "chhatravritti", "chatravritti", "vajifa", "wazifa", "scolarship"},
-	CEducation: {"पढ़ाई", "पढ़ाइ", "शिक्षा", "स्कूल", "कॉलेज", "विद्यालय", "छात्र", "छात्रा", "education", "padhai", "padhaai", "school", "college", "student", "study", "studies", "shiksha"},
-	CFarmer: {"किसान", "कृषि", "खेती", "खेतीबाड़ी", "फसल", "kisan", "kishan", "kissan", "farmer", "farmers", "kheti", "krishi", "fasal", "farming", "agriculture", "agricultural", "खेत"},
+	CEducation:   {"पढ़ाई", "पढ़ाइ", "शिक्षा", "फीस", "fees", "fee", "स्कूल", "कॉलेज", "विद्यालय", "छात्र", "छात्रा", "education", "padhai", "padhaai", "school", "college", "student", "study", "studies", "shiksha"},
+	CFarmer:      {"किसान", "कृषि", "खेती", "खेतीबाड़ी", "फसल", "kisan", "kishan", "kissan", "farmer", "farmers", "kheti", "krishi", "fasal", "farming", "agriculture", "agricultural", "खेत"},
 	CCertificate: {"प्रमाण पत्र", "प्रमाणपत्र", "सर्टिफिकेट", "सर्टिफिकेट", "certificate", "praman patra", "pramanpatra", "praman pater", "sartifiket", "certficate", "पत्र"},
-	CCaste: {"जाति", "जात", "caste", "jati", "jaati", "jaat", "cast"},
-	CIncome: {"आय", "आमदनी", "इनकम", "income", "aay", "aamdani", "amdani"},
-	CResidence: {"निवास", "डोमिसाइल", "domicile", "residence", "residential", "niwas", "nivas", "आवासीय"},
-	CBirth: {"जन्म", "birth", "janm", "janam"},
-	CDeath: {"मृत्यु", "मौत", "death", "mrityu", "maut"},
-	CRation: {"राशन", "ration", "rashan", "राशनकार्ड"},
-	CCard: {"कार्ड", "card", "kard", "कारड"},
-	CHousing: {"घर", "मकान", "आवास", "पक्का मकान", "house", "housing", "home", "ghar", "makan", "makaan", "awas", "aawas", "awaas"},
-	CHealth: {"इलाज", "अस्पताल", "स्वास्थ्य", "हेल्थ", "health", "hospital", "ilaj", "ilaaj", "aspatal", "treatment"},
-	CInsurance: {"बीमा", "इंश्योरेंस", "insurance", "bima", "beema"},
-	CBusiness: {"स्वरोजगार", "व्यवसाय", "व्यापार", "धंधा", "दुकान", "बिजनेस", "बिज़नेस", "उद्यम", "उद्योग", "business", "self employment", "rozgar", "rojgar", "swarojgar", "vyapar", "vyavsay", "dhandha", "dukan", "udyam", "startup", "shop", "रोजगार", "रोज़गार"},
-	CJob: {"नौकरी", "job", "naukri", "employment"},
-	CWomen: {"महिला", "महिलाओं", "औरत", "स्त्री", "women", "woman", "mahila", "बेटी", "लड़की", "girl", "beti", "ladki"},
-	CChild: {"बच्चा", "बच्चे", "बच्ची", "शिशु", "child", "children", "bachcha", "bacche", "baby", "गर्भवती", "pregnant", "pregnancy", "garbhvati"},
-	CAadhaar: {"आधार", "aadhaar", "aadhar", "adhar", "adhaar", "uid"},
-	CIdentity: {"पैन", "वोटर", "पहचान पत्र", "पहचान", "pan", "voter", "identity", "id card", "पासपोर्ट", "passport"},
-	CDocument: {"दस्तावेज", "दस्तावेज़", "कागज", "कागजात", "कागज़ात", "document", "documents", "kagaz", "kagzat", "papers"},
-	COnly: {"सिर्फ", "सिर्फ़", "केवल", "only", "sirf", "keval", "kewal", "बस आधार"},
-	CAmount: {"कितना", "कितनी", "कितने", "राशि", "how much", "kitna", "kitni", "amount"},
-	CMoney: {"पैसा", "पैसे", "रुपया", "रुपये", "money", "paisa", "paise", "rupaye"},
+	CCaste:       {"जाति", "जात", "caste", "jati", "jaati", "jaat", "cast"},
+	CIncome:      {"आय", "आमदनी", "इनकम", "income", "aay", "aamdani", "amdani"},
+	CResidence:   {"निवास", "डोमिसाइल", "domicile", "residence", "residential", "niwas", "nivas", "आवासीय"},
+	CBirth:       {"जन्म", "birth", "janm", "janam"},
+	CDeath:       {"मृत्यु", "मौत", "death", "mrityu", "maut"},
+	CRation:      {"राशन", "ration", "rashan", "राशनकार्ड"},
+	CCard:        {"कार्ड", "card", "kard", "कारड"},
+	CHousing:     {"घर", "मकान", "आवास", "पक्का मकान", "house", "housing", "home", "ghar", "makan", "makaan", "awas", "aawas", "awaas"},
+	CHealth:      {"इलाज", "अस्पताल", "स्वास्थ्य", "हेल्थ", "health", "hospital", "ilaj", "ilaaj", "aspatal", "treatment"},
+	CInsurance:   {"बीमा", "इंश्योरेंस", "insurance", "bima", "beema"},
+	CBusiness:    {"स्वरोजगार", "व्यवसाय", "व्यापार", "धंधा", "दुकान", "बिजनेस", "बिज़नेस", "उद्यम", "उद्योग", "business", "self employment", "rozgar", "rojgar", "swarojgar", "vyapar", "vyavsay", "dhandha", "dukan", "udyam", "startup", "shop", "रोजगार", "रोज़गार"},
+	CJob:         {"नौकरी", "job", "naukri", "employment"},
+	CWomen:       {"महिला", "महिलाओं", "औरत", "स्त्री", "women", "woman", "mahila", "बेटी", "लड़की", "girl", "beti", "ladki"},
+	CChild:       {"बच्चा", "बच्चे", "बच्ची", "बेटा", "बेटे", "बेटों", "शिशु", "child", "children", "bachcha", "bacche", "baby", "गर्भवती", "pregnant", "pregnancy", "garbhvati"},
+	CAadhaar:     {"आधार", "aadhaar", "aadhar", "adhar", "adhaar", "uid"},
+	CIdentity:    {"पैन", "वोटर", "पहचान पत्र", "पहचान", "pan", "voter", "identity", "id card", "पासपोर्ट", "passport"},
+	CDocument:    {"दस्तावेज", "दस्तावेज़", "कागज", "कागजात", "कागज़ात", "document", "documents", "kagaz", "kagzat", "papers"},
+	COnly:        {"सिर्फ", "सिर्फ़", "केवल", "only", "sirf", "keval", "kewal", "बस आधार"},
+	CAmount:      {"कितना", "कितनी", "कितने", "राशि", "how much", "kitna", "kitni", "amount"},
+	CMoney:       {"पैसा", "पैसे", "रुपया", "रुपये", "money", "paisa", "paise", "rupaye"},
 	CNotReceived: {"नहीं आया", "नहीं आई", "नहीं मिला", "नहीं मिली", "रुक गया", "not received", "nahi aaya", "nahi mila"},
-	CDistrict: {"जिला", "जिले", "ज़िला", "ज़िले", "जनपद", "district", "zila", "jila", "zile", "jile"},
+	CDistrict:    {"जिला", "जिले", "ज़िला", "ज़िले", "जनपद", "district", "zila", "jila", "zile", "jile"},
 
 	CGreeting: {"नमस्ते", "नमस्कार", "प्रणाम", "हेलो", "हैलो", "हलो", "राम राम", "hello", "hi", "hii", "namaste", "namaskar", "pranam", "good morning"},
-	CThanks: {"धन्यवाद", "शुक्रिया", "थैंक्यू", "थैंक यू", "thanks", "thank you", "thankyou", "dhanyavad", "dhanyawad", "shukriya"},
-	CRepeat: {"दोबारा", "दुबारा", "फिर से", "फिरसे", "रिपीट", "repeat", "again", "dobara", "dubara", "phir se", "fir se", "समझ नहीं आया"},
-	CHelp: {"मदद", "सहायता", "हेल्प", "help", "madad", "sahayata"},
-	CEnd: {"बंद करो", "बंद कीजिए", "खत्म", "ख़त्म", "अलविदा", "बाय", "bye", "goodbye", "end", "stop", "exit", "alvida", "khatam", "band karo", "बस इतना", "बस"},
-	CYes: {"हाँ", "हां", "हा", "जी हाँ", "हाँ जी", "ठीक है", "बिल्कुल", "yes", "haan", "han", "haa", "ha", "ok", "okay", "sure", "yeah", "हम्म"},
-	CNo: {"नहीं", "नही", "ना", "जी नहीं", "no", "nahi", "nahin", "na", "nope"},
-	CEnglish: {"english", "इंग्लिश", "अंग्रेजी", "अंग्रेज़ी", "angrezi", "angreji"},
-	CHindi: {"hindi", "हिंदी", "हिन्दी"},
-	CHuman: {"इंसान", "आदमी से", "कर्मचारी", "स्टाफ", "ऑपरेटर", "human", "person", "staff", "operator", "insaan", "insan", "karmchari", "किसी से बात", "असली व्यक्ति"},
+	CThanks:   {"धन्यवाद", "शुक्रिया", "थैंक्यू", "थैंक यू", "thanks", "thank you", "thankyou", "dhanyavad", "dhanyawad", "shukriya"},
+	CRepeat:   {"दोबारा", "दुबारा", "फिर से", "फिरसे", "रिपीट", "repeat", "again", "dobara", "dubara", "phir se", "fir se", "समझ नहीं आया"},
+	CHelp:     {"मदद", "सहायता", "हेल्प", "help", "madad", "sahayata"},
+	CEnd:      {"बंद करो", "बंद कीजिए", "खत्म", "ख़त्म", "अलविदा", "बाय", "bye", "goodbye", "end", "stop", "exit", "alvida", "khatam", "band karo", "बस इतना", "बस"},
+	CYes:      {"हाँ", "हां", "हा", "जी हाँ", "हाँ जी", "ठीक है", "बिल्कुल", "yes", "haan", "han", "haa", "ha", "ok", "okay", "sure", "yeah", "हम्म"},
+	CNo:       {"नहीं", "नही", "ना", "जी नहीं", "no", "nahi", "nahin", "na", "nope"},
+	CEnglish:  {"english", "इंग्लिश", "अंग्रेजी", "अंग्रेज़ी", "angrezi", "angreji"},
+	CHindi:    {"hindi", "हिंदी", "हिन्दी"},
+	CHuman:    {"इंसान", "आदमी से", "कर्मचारी", "स्टाफ", "ऑपरेटर", "human", "person", "staff", "operator", "insaan", "insan", "karmchari", "किसी से बात", "असली व्यक्ति"},
 	CKeyboard: {"कीबोर्ड", "टाइप", "keyboard", "type"},
-	CMore: {"और", "more", "दूसरा", "अन्य", "other"},
+	CMore:     {"और", "more", "दूसरा", "अन्य", "other"},
+	CSecret:   {"password", "पासवर्ड", "otp", "ओटीपी", "pin", "पिन", "passcode", "mpin", "cvv"},
 
 	CEntertainment: {"फिल्म", "फ़िल्म", "मूवी", "गाना", "गाने", "सिनेमा", "क्रिकेट", "मैच", "गेम", "चुटकुला", "जोक", "movie", "film", "song", "songs", "gaana", "gana", "cricket", "match", "game", "joke", "chutkula", "ipl", "हीरो", "हीरोइन", "bhojpuri song"},
-	CChitChat: {"कैसे हो", "क्या हाल", "कैसी हो", "मौसम", "how are you", "kaise ho", "kya haal", "weather", "बोर", "bored", "tum kaun ho"},
-	CPolitics: {"चुनाव", "वोट", "पार्टी", "नेता", "मुख्यमंत्री कौन", "election", "vote", "party", "neta", "chunav", "bjp", "congress", "rjd", "jdu", "बीजेपी", "कांग्रेस", "राजद", "जदयू", "campaign", "प्रचार"},
-	CReligion: {"भगवान", "मंदिर", "मस्जिद", "पूजा", "धर्म", "नमाज", "god", "temple", "mosque", "religion", "dharm", "dharma", "puja", "pooja", "allah", "church"},
-	CMedical: {"दवा", "दवाई", "बीमारी", "बुखार", "खांसी", "दर्द", "लक्षण", "medicine", "disease", "fever", "symptom", "symptoms", "dawai", "dawa", "bukhar", "bimari", "pain", "दर्द है"},
-	CInvestment: {"शेयर", "म्यूचुअल फंड", "निवेश", "क्रिप्टो", "बिटकॉइन", "share market", "stock", "stocks", "invest", "investment", "crypto", "bitcoin", "trading", "mutual fund", "nivesh"},
-	CRelationship: {"प्यार", "गर्लफ्रेंड", "बॉयफ्रेंड", "ब्रेकअप", "love", "girlfriend", "boyfriend", "breakup", "pyaar", "pyar", "dating"},
-	CCoding: {"कोडिंग", "कोड", "प्रोग्रामिंग", "प्रोग्राम", "सॉफ्टवेयर", "coding", "programming", "python", "javascript", "java", "html", "sql", "software", "code"},
+	CChitChat:      {"कैसे हो", "क्या हाल", "कैसी हो", "मौसम", "how are you", "kaise ho", "kya haal", "weather", "बोर", "bored", "tum kaun ho"},
+	CPolitics:      {"चुनाव", "वोट", "पार्टी", "नेता", "मुख्यमंत्री कौन", "election", "vote", "party", "neta", "chunav", "bjp", "congress", "rjd", "jdu", "बीजेपी", "कांग्रेस", "राजद", "जदयू", "campaign", "प्रचार"},
+	CReligion:      {"भगवान", "मंदिर", "मस्जिद", "पूजा", "धर्म", "नमाज", "god", "temple", "mosque", "religion", "dharm", "dharma", "puja", "pooja", "allah", "church"},
+	CMedical:       {"दवा", "दवाई", "बीमारी", "बुखार", "खांसी", "दर्द", "लक्षण", "medicine", "disease", "fever", "symptom", "symptoms", "dawai", "dawa", "bukhar", "bimari", "pain", "दर्द है"},
+	CInvestment:    {"शेयर", "म्यूचुअल फंड", "निवेश", "क्रिप्टो", "बिटकॉइन", "share market", "stock", "stocks", "invest", "investment", "crypto", "bitcoin", "trading", "mutual fund", "nivesh"},
+	CRelationship:  {"प्यार", "गर्लफ्रेंड", "बॉयफ्रेंड", "ब्रेकअप", "love", "girlfriend", "boyfriend", "breakup", "pyaar", "pyar", "dating"},
+	CCoding:        {"कोडिंग", "कोड", "प्रोग्रामिंग", "प्रोग्राम", "सॉफ्टवेयर", "coding", "programming", "python", "javascript", "java", "html", "sql", "software", "code"},
+	CIllegal: {"रिश्वत", "रिशवत", "घूस दे", "घूस दूं", "घूस देना", "घूस लेना", "घूस मांग", "rishwat", "rishvat", "riswat", "ghoos", "bribe", "bribes", "bribery",
+		"देसी कट्टा", "desi katta", "पिस्तौल", "पिस्टल", "बंदूक", "बन्दूक", "हथियार", "तमंचा", "pistol", "gun", "guns", "weapon", "weapons", "tamancha", "bandook", "hathiyar"},
+	CVote: {"वोट", "मतदान", "चुनाव", "vote", "votes", "voting", "election", "elections", "chunav", "matdan"},
 	CNews: {"खबर", "ख़बर", "समाचार", "न्यूज़", "न्यूज", "गपशप", "news", "khabar", "gossip", "samachar"},
 }
 

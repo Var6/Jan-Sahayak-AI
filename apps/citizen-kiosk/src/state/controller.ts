@@ -43,6 +43,8 @@ export const TIMINGS = {
   noticeMs: 6_000,
 };
 
+const MAX_SILENT_AUTO_LISTENS = 2;
+
 export class KioskController {
   private readonly t: typeof TIMINGS;
   private events: EventStream | null = null;
@@ -54,6 +56,12 @@ export class KioskController {
   private disposed = false;
   /** Mic pressed while a reply was playing: listen once playback stops. */
   private bargeIn = false;
+  /**
+   * Consecutive voice turns in which the agent heard nothing. Auto-listen
+   * (listen_next) stops after MAX_SILENT_AUTO_LISTENS so an empty kiosk does
+   * not loop listen → "please repeat" → listen until the inactivity timeout.
+   */
+  private silentTurns = 0;
 
   constructor(
     private readonly deps: ControllerDeps,
@@ -71,7 +79,8 @@ export class KioskController {
       {
         onOpen: () => void this.resync(),
         onConn: (conn) => this.dispatch({ type: "conn", conn }),
-        onHealth: (h) => this.dispatch({ type: "health", overall: h.overall, caps: h.capabilities }),
+        onHealth: (h) =>
+          this.dispatch({ type: "health", overall: h.overall, caps: h.capabilities }),
         onSession: (ev) => {
           const before = this.getState();
           this.dispatch({ type: "sessionEvent", ev });
@@ -146,7 +155,7 @@ export class KioskController {
     const id = s.session?.id;
     if (s.screen !== "language" || !id) return;
     const current = s.session?.language ?? "hi";
-    const keepGreeting = current === lang;
+    const keepGreeting = current === lang && !!s.greeting;
     this.dispatch({ type: "languageChosen", lang, keepGreeting });
     if (current !== lang) {
       try {
@@ -154,7 +163,37 @@ export class KioskController {
         this.dispatch({ type: "session", session: r.session });
       } catch (e) {
         this.handleSessionError(e);
+        return;
       }
+    }
+    // The greeting we hold is in the old language (or there is none, e.g.
+    // the UI reloaded): ask the agent for one in the chosen language.
+    if (!keepGreeting) await this.fetchGreeting(id);
+  }
+
+  /**
+   * POST /greeting and hold the reply for the privacy → conversation step.
+   * If the citizen already moved on to the conversation with nothing shown,
+   * show it there. Failures are quiet: the conversation works without it.
+   */
+  private async fetchGreeting(id: string): Promise<void> {
+    const epoch = this.epoch;
+    let r: { reply: Reply; audio_url?: string };
+    try {
+      r = await this.deps.api.greeting(id);
+    } catch {
+      return;
+    }
+    const s = this.getState();
+    if (epoch !== this.epoch || s.session?.id !== id) return;
+    const audioUrl = safeAudioUrl(r.audio_url);
+    if (s.screen === "language" || s.screen === "privacy") {
+      this.dispatch({ type: "greeting", sessionId: id, reply: r.reply, audioUrl });
+      return;
+    }
+    if (s.screen === "conversation" && !s.reply && s.voice === "idle" && !s.busy) {
+      this.dispatch({ type: "showReply", reply: r.reply, audioUrl });
+      await this.speakThenContinue(r.reply, audioUrl, epoch);
     }
   }
 
@@ -181,6 +220,7 @@ export class KioskController {
     const s = this.getState();
     if (s.screen !== "conversation") return;
     this.touchSoon();
+    this.silentTurns = 0;
     switch (s.voice) {
       case "recording":
         this.deps.recorder.stop();
@@ -210,6 +250,7 @@ export class KioskController {
       return false;
     }
     this.cancelVoice();
+    this.silentTurns = 0;
     return this.runTurn(() => this.deps.api.sendText(id, trimmed));
   }
 
@@ -218,6 +259,7 @@ export class KioskController {
     const id = s.session?.id;
     if (s.screen !== "conversation" || !id || s.busy) return;
     this.cancelVoice();
+    this.silentTurns = 0;
     await this.runTurn(() => this.deps.api.chooseOption(id, optionId));
   }
 
@@ -308,9 +350,20 @@ export class KioskController {
     try {
       session = (await this.deps.api.listen(id)).session;
     } catch (e) {
-      if (epoch === this.epoch) this.dispatch({ type: "voice", voice: "idle" });
-      this.handleSessionError(e);
-      return;
+      // The agent may already be LISTENING (listen_next after a reply we did
+      // not auto-record, e.g. greeting skipped). Ask it; record only if it
+      // confirms LISTENING for this session.
+      const confirmed =
+        e instanceof ApiError && e.code === "bad_state" && epoch === this.epoch
+          ? await this.confirmListening(id)
+          : null;
+      if (epoch !== this.epoch) return;
+      if (!confirmed) {
+        this.dispatch({ type: "voice", voice: "idle" });
+        this.handleSessionError(e);
+        return;
+      }
+      session = confirmed;
     }
     if (epoch !== this.epoch) return;
     this.dispatch({ type: "session", session });
@@ -319,6 +372,15 @@ export class KioskController {
       return;
     }
     await this.recordAndSend(id, epoch);
+  }
+
+  private async confirmListening(id: string): Promise<SessionSnapshot | null> {
+    try {
+      const st = await this.deps.api.status();
+      return st.session.id === id && st.session.activity === "LISTENING" ? st.session : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Precondition: the agent has just confirmed LISTENING for session `id`. */
@@ -358,6 +420,7 @@ export class KioskController {
       return false;
     }
     if (epoch !== this.epoch) return false;
+    if (fromVoice) this.silentTurns = result.transcript?.no_speech ? this.silentTurns + 1 : 0;
     const audioUrl = safeAudioUrl(result.audio_url);
     this.dispatch({ type: "turn", result, audioUrl });
     this.dispatch({ type: "busy", busy: false });
@@ -431,8 +494,14 @@ export class KioskController {
     const s = this.getState();
     const id = s.session?.id;
     if (!id || s.screen !== "conversation" || reply.end_session) return;
+    if (this.silentTurns >= MAX_SILENT_AUTO_LISTENS) return;
     // Only when the agent itself put the session in LISTENING (listen_next).
-    if (reply.listen_next && activity === "LISTENING" && voiceInputAvailable(s) && s.voice === "idle") {
+    if (
+      reply.listen_next &&
+      activity === "LISTENING" &&
+      voiceInputAvailable(s) &&
+      s.voice === "idle"
+    ) {
       await this.recordAndSend(id, epoch);
     }
   }
@@ -457,11 +526,24 @@ export class KioskController {
   private afterScreenChange(before: UiState): void {
     const after = this.getState();
     if (before.screen !== after.screen && after.screen === "ended") this.onSessionGone(false);
+    // A session found open without its greeting (UI reloaded, or the SSE
+    // stream missed a button start's session.started): fetch one, so the
+    // citizen is greeted in the language they will choose.
+    if (
+      before.screen !== after.screen &&
+      after.screen === "language" &&
+      !after.greeting &&
+      after.session?.id &&
+      after.session.turns === 0
+    ) {
+      void this.fetchGreeting(after.session.id);
+    }
   }
 
   private onSessionGone(wasActive: boolean): void {
     this.epoch++;
     this.bargeIn = false;
+    this.silentTurns = 0;
     this.deps.recorder.abort();
     this.deps.player.stop();
     if (wasActive || this.getState().screen === "ended") {

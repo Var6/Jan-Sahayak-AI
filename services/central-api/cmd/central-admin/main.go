@@ -1,6 +1,8 @@
 // Command central-admin is the operator CLI for the central API.
 //
-//	central-admin migrate
+//	central-admin migrate                       (as the owner role)
+//	central-admin grant-runtime -role ROLE      (as the owner role, after every migrate)
+//	central-admin check-db-role                 (as the runtime role)
 //	central-admin gen-server-key -out FILE
 //	central-admin server-public-key -key FILE
 //	central-admin create-user -username U -display-name NAME   (password on stdin)
@@ -42,8 +44,8 @@ func main() {
 }
 
 const usage = `usage: central-admin <command> [flags]
-commands: migrate, gen-server-key, server-public-key, create-user, grant-role,
-          register-device, revoke-device, list-devices`
+commands: migrate, grant-runtime, check-db-role, gen-server-key, server-public-key,
+          create-user, grant-role, register-device, revoke-device, list-devices`
 
 func cliActor() core.Actor {
 	name := "unknown"
@@ -86,6 +88,41 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer) 
 		}
 		v, _ := db.SchemaVersion(ctx, pool)
 		fmt.Fprintf(stdout, "applied %v; schema version %d\n", done, v)
+		return nil
+
+	case "grant-runtime":
+		role := fs.String("role", "", "runtime role name (must already exist)")
+		if err := fs.Parse(rest); err != nil {
+			return err
+		}
+		pool, err := openDB()
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		if err := db.GrantRuntime(ctx, pool, *role); err != nil {
+			return err
+		}
+		fmt.Fprintf(stdout, "granted runtime privileges to %s\n", *role)
+		return nil
+
+	case "check-db-role":
+		if err := fs.Parse(rest); err != nil {
+			return err
+		}
+		pool, err := openDB()
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		problems, err := db.CheckRuntimeRole(ctx, pool)
+		if err != nil {
+			return err
+		}
+		if len(problems) > 0 {
+			return fmt.Errorf("not a least-privilege runtime role:\n  %s", strings.Join(problems, "\n  "))
+		}
+		fmt.Fprintln(stdout, "ok: role cannot modify append-only tables or act as table owner")
 		return nil
 
 	case "gen-server-key":

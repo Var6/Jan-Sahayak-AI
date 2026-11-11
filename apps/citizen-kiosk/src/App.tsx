@@ -1,4 +1,3 @@
-import { t } from "./i18n";
 import { Conversation } from "./components/Conversation";
 import {
   Boot,
@@ -8,6 +7,7 @@ import {
   Privacy,
   Welcome,
 } from "./components/Screens";
+import { t } from "./i18n";
 import type { ControllerDeps } from "./state/controller";
 import type { UiState } from "./state/machine";
 import { useKiosk } from "./state/useKiosk";
@@ -22,7 +22,8 @@ function Banners({ state }: { state: UiState }) {
   if (inSession(state) && state.caps) {
     if (!state.caps.voice_input) items.push({ key: "noVoiceIn", text: s.noVoiceIn, tone: "info" });
     else if (state.micBlocked) items.push({ key: "micBlocked", text: s.micBlocked, tone: "info" });
-    if (!state.caps.voice_output) items.push({ key: "noVoiceOut", text: s.noVoiceOut, tone: "info" });
+    if (!state.caps.voice_output)
+      items.push({ key: "noVoiceOut", text: s.noVoiceOut, tone: "info" });
   }
   if (items.length === 0) return null;
   return (
@@ -40,9 +41,11 @@ function Notice({ state, onClose }: { state: UiState; onClose: () => void }) {
   if (!state.notice || state.notice === "micBlocked") return null;
   const s = t(state.lang);
   return (
-    <button type="button" className="notice" onClick={onClose} role="alert" data-testid="notice">
-      {s[state.notice]}
-    </button>
+    <div className="notice" role="alert">
+      <button type="button" className="notice__btn" onClick={onClose} data-testid="notice">
+        {s[state.notice]}
+      </button>
+    </div>
   );
 }
 

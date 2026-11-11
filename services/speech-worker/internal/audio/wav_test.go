@@ -86,3 +86,35 @@ func FuzzParseHeader(f *testing.F) {
 		_, _, _ = DecodeMono16(b, 16000, 20)
 	})
 }
+
+func TestDownsampleHalvesAndFilters(t *testing.T) {
+	const rate = 44100
+	n := rate / 10
+	low := make([]float32, n)  // 440 Hz: must survive
+	high := make([]float32, n) // 18 kHz: above the new Nyquist, must be attenuated
+	for i := range low {
+		low[i] = float32(math.Sin(2 * math.Pi * 440 * float64(i) / rate))
+		high[i] = float32(math.Sin(2 * math.Pi * 18000 * float64(i) / rate))
+	}
+	rms := func(x []float32) float64 {
+		s := 0.0
+		for _, v := range x[50 : len(x)-50] {
+			s += float64(v) * float64(v)
+		}
+		return math.Sqrt(s / float64(len(x)-100))
+	}
+	lo, r := Downsample(low, rate, 22050)
+	if r != 22050 || len(lo) != n/2 {
+		t.Fatalf("rate=%d len=%d", r, len(lo))
+	}
+	hi, _ := Downsample(high, rate, 22050)
+	if rms(lo) < 0.6 || rms(hi) > 0.1 {
+		t.Fatalf("passband rms %.3f, stopband rms %.3f", rms(lo), rms(hi))
+	}
+	if same, r := Downsample(low, 22050, 22050); r != 22050 || len(same) != len(low) {
+		t.Fatal("22.05 kHz input must be unchanged")
+	}
+	if same, r := Downsample(low, 24000, 22050); r != 24000 || len(same) != len(low) {
+		t.Fatal("rate below 2× max must be unchanged")
+	}
+}

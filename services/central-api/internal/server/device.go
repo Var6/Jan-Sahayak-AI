@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/janmanindia/jan-sahayak/internal/ids"
 	"github.com/janmanindia/jan-sahayak/internal/syncproto"
 )
+
+var bundleVersionRe = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]{1,6}$`)
 
 // acquireDevice takes a device-request slot, waiting briefly. ok=false
 // means a 503 was written.
@@ -67,7 +70,9 @@ func (s *Server) authenticateDevice(ctx context.Context, w http.ResponseWriter, 
 		return "", false
 	}
 	now := s.now()
-	err = syncproto.VerifyRequest(ed25519.PublicKey(pub), r.Method, r.URL.Path,
+	// The signed target includes the query string (deviceapi.SignedTarget),
+	// so e.g. ?since on the bundle endpoint cannot be altered in transit.
+	err = syncproto.VerifyRequest(ed25519.PublicKey(pub), r.Method, deviceapi.SignedTarget(r.URL),
 		r.Header.Get(syncproto.HeaderTS), nonce, r.Header.Get(syncproto.HeaderSig), body, now)
 	if errors.Is(err, syncproto.ErrClockSkew) {
 		s.log.Warn("device auth failed", "reason", "clock skew", "device", devID)
@@ -92,7 +97,32 @@ func (s *Server) authenticateDevice(ctx context.Context, w http.ResponseWriter, 
 	if tag.RowsAffected() == 0 {
 		return unauthorized("replayed nonce")
 	}
+	if hook := s.afterDeviceAuth.Load(); hook != nil {
+		(*hook)()
+	}
 	return devID, true
+}
+
+// errDeviceInactive means the device was revoked after its request was
+// authenticated (security review finding 8).
+var errDeviceInactive = errors.New("device is no longer active")
+
+// lockActiveDevice re-checks inside tx that the device is still active and
+// locks its row until commit, so a concurrent revocation (which takes the
+// row lock FOR UPDATE in core.RevokeDevice) either completes before this
+// check — and the request is refused — or waits until the transaction has
+// committed. It also stamps last_seen_at, which needs the row lock anyway;
+// taking it up front avoids upgrading a FOR SHARE lock later, which could
+// deadlock against a waiting revocation.
+func lockActiveDevice(ctx context.Context, tx pgx.Tx, devID string) error {
+	tag, err := tx.Exec(ctx, `UPDATE devices SET last_seen_at = now() WHERE id = $1 AND status = 'active'`, devID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errDeviceInactive
+	}
+	return nil
 }
 
 // handleSyncEvents implements POST /v1/sync/events (see internal/syncproto).
@@ -144,13 +174,18 @@ func (s *Server) handleSyncEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results, err := s.ingest(ctx, devID, req)
+	if errors.Is(err, errDeviceInactive) {
+		s.log.Warn("device auth failed", "reason", "revoked during request", "device", devID)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "device authentication failed")
+		return
+	}
 	if err != nil {
 		s.log.Error("sync: ingest failed, no ack sent", "device", devID, "batch", req.BatchID, "err", err)
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusServiceUnavailable, "unavailable", "events not stored; retry later")
 		return
 	}
-	signer := s.keys.Active()
+	signer := s.keys.Load().Active()
 	ack := syncproto.BatchAck{
 		BatchID:    req.BatchID,
 		DeviceID:   devID,
@@ -196,6 +231,9 @@ func (s *Server) ingest(ctx context.Context, devID string, req syncproto.BatchRe
 		return nil, err
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
+	if err := lockActiveDevice(ctx, tx, devID); err != nil {
+		return nil, err
+	}
 
 	if len(todo) > 0 {
 		b := &pgx.Batch{}
@@ -230,11 +268,8 @@ func (s *Server) ingest(ctx context.Context, devID string, req syncproto.BatchRe
 			}
 		}
 	}
-	if _, err := tx.Exec(ctx, `UPDATE devices SET last_seen_at = now() WHERE id = $1`, devID); err != nil {
-		return nil, err
-	}
-	if s.beforeCommit != nil {
-		if err := s.beforeCommit(ctx, tx); err != nil {
+	if hook := s.beforeCommit.Load(); hook != nil {
+		if err := (*hook)(ctx, tx); err != nil {
 			return nil, err
 		}
 	}
@@ -354,8 +389,12 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
-	// Serialise per device and enforce the minimum interval.
-	if _, err := tx.Exec(ctx, `SELECT 1 FROM devices WHERE id = $1 FOR UPDATE`, devID); err != nil {
+	// Serialise per device, re-check it is still active, and enforce the
+	// minimum interval.
+	if err := lockActiveDevice(ctx, tx, devID); errors.Is(err, errDeviceInactive) {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "device authentication failed")
+		return
+	} else if err != nil {
 		s.dbUnavailable(w, "heartbeat: lock", err)
 		return
 	}
@@ -385,10 +424,6 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		s.dbUnavailable(w, "heartbeat: insert", err)
 		return
 	}
-	if _, err := tx.Exec(ctx, `UPDATE devices SET last_seen_at = now() WHERE id = $1`, devID); err != nil {
-		s.dbUnavailable(w, "heartbeat: last_seen", err)
-		return
-	}
 	var latest *string
 	if err := tx.QueryRow(ctx, `SELECT bundle_version FROM knowledge_bundles ORDER BY created_at DESC, id DESC LIMIT 1`).Scan(&latest); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		s.dbUnavailable(w, "heartbeat: latest bundle", err)
@@ -411,8 +446,9 @@ func (s *Server) dbUnavailable(w http.ResponseWriter, what string, err error) {
 }
 
 // handleKnowledgeBundle implements GET /v1/devices/knowledge-bundle. The
-// request is signed with an empty body. If ?since equals the latest
-// bundle version the answer is 204 No Content.
+// request is signed with an empty body; the signature covers the query
+// string. If ?since equals the latest bundle version the answer is 204 No
+// Content.
 func (s *Server) handleKnowledgeBundle(w http.ResponseWriter, r *http.Request) {
 	if !s.acquireDevice(w, r) {
 		return
@@ -424,11 +460,16 @@ func (s *Server) handleKnowledgeBundle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", "GET must not have a body")
 		return
 	}
+	q := r.URL.Query()
+	since := q.Get("since")
+	if len(q) > 1 || (len(q) == 1 && !q.Has("since")) || len(q["since"]) > 1 || (since != "" && !bundleVersionRe.MatchString(since)) {
+		writeError(w, http.StatusBadRequest, "bad_request", "only ?since=YYYY-MM-DD.N is accepted")
+		return
+	}
 	devID, ok := s.authenticateDevice(ctx, w, r, nil)
 	if !ok {
 		return
 	}
-	since := r.URL.Query().Get("since")
 	if _, err := s.pool.Exec(ctx, `UPDATE devices SET last_seen_at = now() WHERE id = $1`, devID); err != nil {
 		s.dbUnavailable(w, "bundle: last_seen", err)
 		return

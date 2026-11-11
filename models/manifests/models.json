@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "updated": "2026-11-09",
-  "notes": "Install with scripts/models/install.sh <profile>. Weights go to models/weights/ (git-ignored). Every file is SHA-256 verified before it is moved into place.",
+  "notes": "Install with scripts/models/install.sh <profile>. Weights go to models/weights/ (git-ignored). Every file, including every file extracted from an archive, has a pinned SHA-256: install.sh verifies archives and files before moving anything into place, and install.sh --verify re-hashes every installed file. Release bundles carry a SHA256SUMS (scripts/release/sha256sums.sh) checked by scripts/release/verify-release.sh.",
   "profiles": {
     "dev-mac": ["stt-indicconformer-hi", "vad-silero", "tts-supertonic3", "llm-gemma4-e2b", "llm-gemma4-e2b-mtp", "stt-whisper-turbo"],
     "pi5": ["stt-indicconformer-hi", "vad-silero", "tts-supertonic3", "llm-gemma4-e2b", "llm-gemma4-e2b-mtp"]
@@ -39,14 +39,17 @@
       "licence": "Weights: BigScience OpenRAIL-M (use restrictions: disclose machine-generated speech; no automated legal-rights decisions; no medical advice; no law enforcement / justice administration; pass restrictions on). Code: MIT.",
       "status": "DOWNLOADED",
       "archive": {"url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2", "bytes": 128774318, "sha256": "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427", "extract_to": "tts/"},
+      "files_provenance": "Per-file sha256 values were computed on 2026-11-09 from the installed copy in models/weights/tts/, which install.sh had extracted from this archive after verifying the archive sha256 above, so they inherit that verification. Cross-checked the same day: the archive was downloaded again, its sha256 matched the value above, and a fresh extraction gave exactly these per-file hashes. install.sh extracts into a staging directory, checks every listed file against these hashes, and installs only the listed files (the list is the whole archive content).",
       "files": [
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vector_estimator.int8.onnx"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/text_encoder.int8.onnx"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vocoder.int8.onnx"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/duration_predictor.int8.onnx"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/tts.json"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/unicode_indexer.bin"},
-        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/voice.bin"}
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vector_estimator.int8.onnx", "bytes": 78400833, "sha256": "20cd86fa5c6effedfda0e7cffe5b0569ca401c440a0c3a1d72bf39286c0db3fd"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/text_encoder.int8.onnx", "bytes": 36416150, "sha256": "c7befd5ea8c3119769e8a6c1486c4edc6a3bc8365c67621c881bbb774b9902ff"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/vocoder.int8.onnx", "bytes": 25991073, "sha256": "e923d60f53f95eb1ce235f1dc33ec56d9c057823c96fa6f8acf98f32b0da6152"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/duration_predictor.int8.onnx", "bytes": 3700147, "sha256": "c3eb91414d5ff8a7a239b7fe9e34e7e2bf8a8140d8375ffb14718b1c639325db"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/tts.json", "bytes": 8253, "sha256": "42078d3aef1cd43ab43021f3c54f47d2d75ceb4e75f627f118890128b06a0d09"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/unicode_indexer.bin", "bytes": 262144, "sha256": "8402ca48e5189a8950138580b0fff64db6f072f24ac07cd54ba8b2fbb9883b30"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/voice.bin", "bytes": 517168, "sha256": "67d5209b0ee8ce6c74105ffbe12fe6a7628aea3b4ba2fcb308a4a67938a93ce8"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/LICENSE", "bytes": 1070, "sha256": "0dfe0d0ba84416fe3879d9a34f4909d8d0137c78d1e95834177b0414ac096fa2"},
+        {"path": "tts/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/README.md", "bytes": 19518, "sha256": "a96c347945f7c8bc1673bea3525b1ac8d36fdde556e1e0a6a186052429caf863"}
       ]
     },
     {

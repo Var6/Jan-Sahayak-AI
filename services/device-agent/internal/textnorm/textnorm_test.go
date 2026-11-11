@@ -204,3 +204,40 @@ func BenchmarkAnalyze(b *testing.B) {
 		Analyze(s)
 	}
 }
+
+func TestCanonFoldsLookAlikes(t *testing.T) {
+	cases := map[string]string{
+		"ig​nore":     "ignore", // zero-width space removed, not a word break
+		"ｉｇｎｏｒｅ":      "ignore", // fullwidth
+		"іgnore":      "ignore", // Cyrillic і
+		"ignοre":      "ignore", // Greek ο
+		"soft­hyphen": "softhyphen",
+		"‮abc":        "abc", // bidi override
+	}
+	for in, want := range cases {
+		if got := Fold(in); got != want {
+			t.Errorf("Fold(%q) = %q, want %q", in, got, want)
+		}
+		if got := strings.ToLower(Canon(in)); got != want {
+			t.Errorf("Canon(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestShortLatinWordsAreNotFuzzy(t *testing.T) {
+	// "pati" (husband) must not become "jati" (caste); "maar" (beat) must
+	// not become anything else.
+	for _, in := range []string{"pati", "maar", "mera pati"} {
+		if a := Analyze(in); a.Has(CCaste) {
+			t.Errorf("%q → caste (fuzzy match on a short romanised word)", in)
+		}
+	}
+	// Exact short forms and longer fuzzy forms still work.
+	if !Analyze("jati").Has(CCaste) || !Analyze("penshan").Has(CPension) || !Analyze("scolarship").Has(CScholarship) {
+		t.Error("exact / long fuzzy matching broken")
+	}
+	// Devanagari short words keep their (length-based) tolerance.
+	if !Analyze("पेसन").Has(CPension) {
+		t.Error("Devanagari fuzzy matching broken")
+	}
+}

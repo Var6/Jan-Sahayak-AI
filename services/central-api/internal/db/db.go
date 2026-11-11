@@ -41,6 +41,10 @@ type Options struct {
 	StatementTimeout time.Duration
 	// Schema, if set, is used as search_path (tests use a fresh schema).
 	Schema string
+	// Role, if set, is assumed with SET ROLE on every new connection. For
+	// tests and tooling only: a session can RESET ROLE, so production must
+	// log in as the runtime role directly (see roles.go).
+	Role string
 }
 
 // Open creates a pool and pings it.
@@ -70,6 +74,16 @@ func Open(ctx context.Context, url string, o Options) (*pgxpool.Pool, error) {
 	rp["timezone"] = "UTC"
 	if o.Schema != "" {
 		rp["search_path"] = o.Schema
+	}
+	if o.Role != "" {
+		if !roleNameRe.MatchString(o.Role) {
+			return nil, fmt.Errorf("db: bad role name %q", o.Role)
+		}
+		setRole := `SET ROLE ` + pgx.Identifier{o.Role}.Sanitize()
+		cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error {
+			_, err := c.Exec(ctx, setRole)
+			return err
+		}
 	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {

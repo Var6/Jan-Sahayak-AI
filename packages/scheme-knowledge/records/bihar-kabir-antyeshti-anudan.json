@@ -1,0 +1,99 @@
+{
+  "id": "bihar-kabir-antyeshti-anudan",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "कबीर अंत्येष्टि अनुदान योजना",
+    "en": "Kabir Antyeshti Anudan Yojana"
+  },
+  "aliases": [
+    "कबीर अंत्येष्टि",
+    "अंत्येष्टि अनुदान",
+    "अंतिम संस्कार सहायता",
+    "kabir antyeshti",
+    "kabir anudan",
+    "antyeshti anudan",
+    "funeral assistance bihar",
+    "दाह संस्कार के लिए पैसा"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार",
+    "en": "Social Welfare Department, Government of Bihar"
+  },
+  "category": "pension",
+  "keywords": [
+    "अंत्येष्टि",
+    "अंतिम संस्कार",
+    "मृत्यु",
+    "बीपीएल",
+    "funeral",
+    "last rites",
+    "death",
+    "BPL"
+  ],
+  "summary": {
+    "hi": "BPL परिवार में किसी भी उम्र के व्यक्ति की मृत्यु होने पर अंतिम संस्कार के लिए परिवार को एकमुश्त सहायता मिलती है।",
+    "en": "One-time assistance for last rites when a person of any age from a BPL family dies."
+  },
+  "eligibility": [
+    {
+      "hi": "मृत व्यक्ति BPL परिवार का हो; उम्र कोई भी हो सकती है।",
+      "en": "The deceased belonged to a BPL family; any age."
+    },
+    {
+      "hi": "सहायता मृतक के नज़दीकी आश्रित / परिवार को अंतिम संस्कार के लिए दी जाती है।",
+      "en": "Assistance is given to the deceased's nearest dependant / family for the last rites."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "एकमुश्त ₹3000 की सहायता।",
+      "en": "One-time assistance of ₹3000."
+    }
+  ],
+  "questions": [
+    {
+      "id": "is_bpl",
+      "ask": {
+        "hi": "क्या मृत व्यक्ति का परिवार BPL सूची में है?",
+        "en": "Is the deceased's family on the BPL list?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "मृतक के आश्रित विहित प्रपत्र में आवेदन प्रखंड कार्यालय के RTPS काउंटर पर जमा करें।",
+      "en": "The deceased's dependant submits the application in the prescribed form at the block office RTPS counter."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://betastate.bihar.gov.in/SocialWelfare/DyPageView.aspx?PageTitleID=1810",
+  "sources": [
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/5b6e8536-d0df-498a-a34b-aba09431ca5c.pdf",
+      "title": "Social Welfare Department, Bihar — कबीर अंत्येष्टि अनुदान योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of sections 3–5) कबीर अंत्येष्टि अनुदान योजना अन्तर्गत मृतक के आश्रित को अन्त्येष्टि क्रिया हेतु एकमुश्त रू0 3000/- रूपये की सहायता दी जाती है। ... बी0पी0एल0 परिवार के किसी भी आयु के व्यक्ति की मृत्यु पर उसके अंत्येष्टि क्रिया हेतु परिवार को अनुदान देय होगा। ... प्रखण्ड कार्यालय स्तर पर अवस्थित RTPS काउंटर पर जमा किया जाता है।"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/SocialWelfare/DyPageView.aspx?PageTitleID=1810",
+      "title": "Social Welfare Department, Bihar — Mukhyamantri Samajik Sahayata Evam Protsahan Chhatra Yojna (scheme list)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "5 Kabir Anthyesthi Anudan Yojana"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT (₹3000) from the SW scheme note uploaded Apr 2024 — confirm current. Document list not stated in the fetched source (third-party sites mention a form on esuvidha.bihar.gov.in and a helpline — NOT verified, not used). In practice payment may be made by the panchayat/mukhiya immediately — not stated in source, not added. SW PDF text is garbled; Hindi fields are drafter translations. Category 'pension' used as closest fit (no 'death benefit' category exists)."
+  }
+}

@@ -8,8 +8,8 @@ import "./styles.css";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { DeviceApi } from "./api/client";
 import { App } from "./App";
+import { DeviceApi } from "./api/client";
 import { AudioPlayer } from "./audio/player";
 import { MicRecorder } from "./audio/recorder";
 import { hardenKiosk } from "./kiosk";

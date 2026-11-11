@@ -167,6 +167,41 @@ func TestLoadBundleFile(t *testing.T) {
 	}
 }
 
+// A correctly signed but OLDER bundle must not replace newer facts
+// (security review finding 9, device side).
+func TestLoadBundleRefusesRollback(t *testing.T) {
+	ks := openStore(t, Config{})
+	b, _ := os.ReadFile(filepath.Join("testdata/records", "test-caste-certificate.json"))
+	var r scheme.Record
+	if err := json.Unmarshal(b, &r); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	load := func(v string) error {
+		_, err := ks.LoadBundle(ctx, scheme.Bundle{BundleVersion: v, CreatedAt: "2026-11-09T00:00:00Z", Records: []scheme.Record{r}}, nil)
+		return err
+	}
+	if err := load("2026-11-09.2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := load("2026-11-09.2"); err != nil {
+		t.Fatalf("reloading the same version (every start-up) must work: %v", err)
+	}
+	for _, older := range []string{"2026-11-09.1", "2026-11-08.9", "local-abc", "2026-11-09.test"} {
+		if err := load(older); !errors.Is(err, ErrBundleRollback) {
+			t.Fatalf("%s after 2026-11-09.2: err=%v, want ErrBundleRollback", older, err)
+		}
+		if v, _ := ks.BundleVersion(ctx); v != "2026-11-09.2" {
+			t.Fatalf("refused load changed meta to %s", v)
+		}
+	}
+	for _, newer := range []string{"2026-11-09.10", "2026-11-10.1"} {
+		if err := load(newer); err != nil {
+			t.Fatalf("newer %s refused: %v", newer, err)
+		}
+	}
+}
+
 func TestSearchRanksGarbledQueries(t *testing.T) {
 	ks := openStore(t, Config{})
 	loadFixtures(t, ks)

@@ -1,0 +1,129 @@
+{
+  "id": "bihar-laxmibai-pension",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "लक्ष्मीबाई सामाजिक सुरक्षा पेंशन योजना",
+    "en": "Laxmibai Social Security Pension Yojana"
+  },
+  "aliases": [
+    "लक्ष्मीबाई पेंशन",
+    "विधवा पेंशन",
+    "laxmibai pension",
+    "lakshmibai pension",
+    "vidhwa pension",
+    "widow pension bihar",
+    "बेवा पेंशन",
+    "विधवा महिला पेंशन"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार",
+    "en": "Social Welfare Department, Government of Bihar"
+  },
+  "category": "pension",
+  "keywords": [
+    "विधवा",
+    "पेंशन",
+    "पति की मृत्यु",
+    "widow",
+    "pension",
+    "women"
+  ],
+  "summary": {
+    "hi": "लक्ष्मीबाई सामाजिक सुरक्षा पेंशन योजना गरीब परिवार की 18 साल से ज़्यादा उम्र की विधवा महिलाओं को हर महीने पेंशन देती है।",
+    "en": "The Laxmibai Social Security Pension gives a monthly pension to widows above 18 years of age from poor families."
+  },
+  "eligibility": [
+    {
+      "hi": "विधवा महिला, उम्र 18 साल से ज़्यादा।",
+      "en": "Widow, aged above 18 years."
+    },
+    {
+      "hi": "BPL परिवार की हों, या परिवार की सालाना आय ₹60,000 या उससे कम हो।",
+      "en": "From a BPL family, or annual income of ₹60,000 or less."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार बिहार में 10 साल का निवास।",
+      "en": "Per the RTPS list, 10 years of residence in Bihar."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "हर महीने पेंशन। (राशि की पुष्टि होनी बाकी है।)",
+      "en": "A monthly pension. (Amount pending confirmation.)"
+    }
+  ],
+  "age_rule": {
+    "hi": "18 साल से ज़्यादा",
+    "en": "Above 18 years"
+  },
+  "income_rule": {
+    "hi": "BPL परिवार, या सालाना आय ₹60,000 तक",
+    "en": "BPL family, or annual income up to ₹60,000"
+  },
+  "questions": [
+    {
+      "id": "is_widow",
+      "ask": {
+        "hi": "क्या जिनके लिए पेंशन चाहिए, वे विधवा महिला हैं?",
+        "en": "Is the applicant a widow?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "bpl_or_income_60000",
+      "ask": {
+        "hi": "क्या परिवार BPL है, या परिवार की सालाना आमदनी साठ हज़ार रुपये या उससे कम है?",
+        "en": "Is the family BPL, or is the annual family income ₹60,000 or less?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "BPL प्रमाण पत्र, या ₹60,000 तक सालाना आय का आय प्रमाण पत्र",
+        "en": "BPL certificate, or income certificate showing annual income up to ₹60,000"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में आवेदन प्रखंड कार्यालय के RTPS काउंटर पर जमा करें।",
+      "en": "Submit the application in the prescribed form at the block office RTPS counter."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार प्रखंड विकास पदाधिकारी 21 कार्य दिवस में निर्णय देते हैं; अपील अनुमंडल पदाधिकारी के पास।",
+      "en": "Per the RTPS list, the Block Development Officer decides within 21 working days; appeal lies with the Sub-Division Officer."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://serviceonline.bihar.gov.in/",
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_SWD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of Social Welfare Department (SWD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Lakshmibai Social Security Pension | Marital Status: Widow, Age: > 18 years, Income: <= 60,000 / -, Resident: 10 years | 1. BPL Certificate 2. Income Certificate of up to Rs. 60,000 / - | Block Development Officer (21)"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/c2ab7354-4a76-40c3-9881-1f3dceb3f99e.pdf",
+      "title": "Social Welfare Department, Bihar — लक्ष्मीबाई सामाजिक सुरक्षा पेंशन योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of section 4) बी0पी0एल0 परिवार अथवा जिसकी वार्षिक आय 60000/- से कम हो एवं जिसकी आयु 18 वर्ष से अधिक हो वैसी विधवा महिला इस योजना से आच्छादित होंगी।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT OMITTED: the Social Welfare PDF (uploaded Apr 2024) says ₹400/month, but news reports say Bihar raised social security pensions to ₹1100 from June 2025; the state portal confirms ₹1100 only for MVPY. Confirm the current Laxmibai amount from an official source before adding it. Sources differ slightly on the income rule: RTPS table says '<= 60,000' and accepts BPL certificate or income certificate; the SW note says 'BPL family or annual income below 60000'. RTPS table is undated. The SW PDF text is garbled; Hindi fields are drafter translations. Online application route (SSPMIS) not confirmed for this scheme."
+  }
+}

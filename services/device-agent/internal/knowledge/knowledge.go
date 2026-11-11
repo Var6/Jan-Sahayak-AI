@@ -61,6 +61,10 @@ var ErrNotFound = errors.New("knowledge: record not found")
 // ErrNothingValid is returned when a load contains records but none valid.
 var ErrNothingValid = errors.New("knowledge: no valid records in input; previous knowledge kept")
 
+// ErrBundleRollback is returned when a bundle is older than the one loaded
+// (a correctly signed but outdated bundle must not replace newer facts).
+var ErrBundleRollback = errors.New("knowledge: bundle_version is older than the loaded bundle; previous knowledge kept")
+
 // Config controls presentation policy.
 type Config struct {
 	// DeviceProfile is the hardware/config profile ("dev-mac", "pi5" …).
@@ -205,6 +209,13 @@ func (s *Store) LoadBundle(ctx context.Context, bun scheme.Bundle, verify func(s
 	}
 	if len(bun.Records) > MaxRecords {
 		return Report{}, fmt.Errorf("knowledge: bundle has %d records (max %d)", len(bun.Records), MaxRecords)
+	}
+	cur, err := s.BundleVersion(ctx)
+	if err != nil {
+		return Report{}, err
+	}
+	if err := checkBundleOrder(cur, bun.BundleVersion); err != nil {
+		return Report{BundleVersion: bun.BundleVersion}, err
 	}
 	in := make([]sourced, 0, len(bun.Records))
 	for i, r := range bun.Records {
@@ -414,4 +425,43 @@ func sortedKeys(m map[string]float64) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// parseBundleVersion parses the central bundle_version format
+// "YYYY-MM-DD.N" (cmd/kb and central-api both produce it).
+func parseBundleVersion(v string) (day time.Time, n int, ok bool) {
+	d, num, found := strings.Cut(v, ".")
+	if !found || num == "" || len(num) > 6 {
+		return time.Time{}, 0, false
+	}
+	t, err := time.Parse("2006-01-02", d)
+	if err != nil {
+		return time.Time{}, 0, false
+	}
+	for _, c := range num {
+		if c < '0' || c > '9' {
+			return time.Time{}, 0, false
+		}
+		n = n*10 + int(c-'0')
+	}
+	return t, n, true
+}
+
+// checkBundleOrder refuses a bundle older than the loaded one. Reloading
+// the same version (every start-up) is allowed. When the loaded version is
+// a central "YYYY-MM-DD.N" version, the new one must be one too and not
+// lower; a local/dev version ("local-…", hand-made) imposes no order.
+func checkBundleOrder(cur, next string) error {
+	cd, cn, ok := parseBundleVersion(cur)
+	if !ok || cur == next {
+		return nil
+	}
+	nd, nn, ok := parseBundleVersion(next)
+	if !ok {
+		return fmt.Errorf("%w (loaded %s, offered %q is not a YYYY-MM-DD.N version)", ErrBundleRollback, cur, next)
+	}
+	if nd.Before(cd) || nd.Equal(cd) && nn < cn {
+		return fmt.Errorf("%w (loaded %s, offered %s)", ErrBundleRollback, cur, next)
+	}
+	return nil
 }

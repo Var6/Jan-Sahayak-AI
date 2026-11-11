@@ -38,11 +38,14 @@ export function SchemeCard({ card, lang }: { card: Card; lang: Lang }) {
       )}
       {!card.verified && <p className="card__warn">{s.unverifiedNote}</p>}
       {card.sections.map((sec, i) => (
-        // Sections have no ids; titles may repeat, so index the key.
+        // Sections have no ids and titles may repeat; the list is replaced
+        // wholesale with each reply, so position is a stable key.
+        // biome-ignore lint/suspicious/noArrayIndexKey: static per reply
         <section className="card__section" key={`${i}-${sec.title}`}>
           <h4>{sec.title}</h4>
           <ul>
             {sec.items.map((it, j) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static per reply
               <li key={`${j}-${it}`}>{it}</li>
             ))}
           </ul>

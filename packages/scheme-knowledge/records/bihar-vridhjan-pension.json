@@ -1,0 +1,124 @@
+{
+  "id": "bihar-vridhjan-pension",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "मुख्यमंत्री वृद्धजन पेंशन योजना",
+    "en": "Mukhyamantri Vridhjan Pension Yojana (MVPY)"
+  },
+  "aliases": [
+    "वृद्धजन पेंशन",
+    "वृद्धा पेंशन",
+    "बुढ़ापा पेंशन",
+    "बुजुर्ग पेंशन",
+    "vridha pension",
+    "vridhjan pension",
+    "budhapa pension",
+    "old age pension bihar",
+    "MVPY",
+    "मुख्यमंत्री वृद्धजन पेंशन"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार",
+    "en": "Social Welfare Department, Government of Bihar"
+  },
+  "category": "pension",
+  "keywords": [
+    "पेंशन",
+    "बुजुर्ग",
+    "बूढ़े",
+    "60 साल",
+    "माँ",
+    "पिता",
+    "pension",
+    "old age",
+    "senior citizen",
+    "elderly"
+  ],
+  "summary": {
+    "hi": "मुख्यमंत्री वृद्धजन पेंशन योजना बिहार के 60 साल या उससे ज़्यादा उम्र के सभी आय वर्ग के बुजुर्गों को हर महीने पेंशन देती है, अगर उन्हें कोई सरकारी वेतन या पेंशन नहीं मिलती।",
+    "en": "MVPY gives a monthly pension to Bihar residents aged 60 or above, of all income groups, who do not receive any government salary or pension."
+  },
+  "eligibility": [
+    {
+      "hi": "उम्र 60 साल या उससे ज़्यादा।",
+      "en": "Aged 60 years or above."
+    },
+    {
+      "hi": "सभी आय वर्ग के लोग पात्र हैं।",
+      "en": "Applicable to all income groups."
+    },
+    {
+      "hi": "आवेदक को केंद्र या राज्य सरकार से कोई वेतन, पेंशन, पारिवारिक पेंशन या दूसरी सामाजिक सुरक्षा पेंशन नहीं मिलनी चाहिए।",
+      "en": "The applicant must not receive any salary, pension, family pension or other social security pension from the Central or State Government."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "जून 2025 से पात्र लाभार्थियों को हर महीने ₹1100 पेंशन मिलती है।",
+      "en": "From June 2025, eligible beneficiaries receive ₹1100 per month."
+    }
+  ],
+  "age_rule": {
+    "hi": "60 साल या उससे ज़्यादा",
+    "en": "60 years or above"
+  },
+  "questions": [
+    {
+      "id": "age_60_plus",
+      "ask": {
+        "hi": "क्या जिनके लिए पेंशन चाहिए, उनकी उम्र 60 साल या उससे ज़्यादा है?",
+        "en": "Is the person who needs the pension aged 60 or above?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "gets_govt_pension_or_salary",
+      "ask": {
+        "hi": "क्या उन्हें पहले से कोई सरकारी वेतन, पेंशन या पारिवारिक पेंशन मिलती है?",
+        "en": "Do they already get any government salary, pension or family pension?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में आवेदन दो प्रतियों में प्रखंड के RTPS काउंटर पर जमा करें।",
+      "en": "Submit the application in the prescribed form, in two copies, at the block RTPS counter."
+    },
+    {
+      "hi": "ऑनलाइन आवेदन की व्यवस्था सामाजिक सुरक्षा पेंशन पोर्टल (SSPMIS) पर भी है।",
+      "en": "Online application is also available on the social security pension portal (SSPMIS)."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "प्रखंड कार्यालय का RTPS काउंटर",
+      "en": "RTPS counter at the block office"
+    }
+  ],
+  "official_url": "https://betastate.bihar.gov.in/pension",
+  "sources": [
+    {
+      "url": "https://betastate.bihar.gov.in/pension",
+      "title": "Government of Bihar — Mukhyamantri Vridhjan Pension Yojana",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Senior citizens aged 60 years or above. Applicable to all income groups of the state. Applicant should not receive any salary, pension, family pension or other social security pension from Central / State Government. ... From June 2025 onwards, eligible beneficiaries receive ₹1100 per month pension."
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/bc6f131a-d9b1-4d96-ae7f-7df8a03304ad.pdf",
+      "title": "Social Welfare Department, Bihar — मुख्यमंत्री वृद्धजन पेंशन योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer garbled; reading of section 5) इस योजना में आवेदन विहित प्रपत्र में दो प्रतियों में प्रखण्ड के RTPS काउन्टर पर जमा किया जाता है। साथ ही, इसमें sspmis.in पर ऑनलाइन आवेदन प्राप्त करने की व्यवस्था भी की गई है।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNT CHANGES OFTEN: ₹1100/month is from the state portal page (betastate.bihar.gov.in, 'Last Updated: 09-Nov-2026'); the Social Welfare PDF uploaded Apr 2024 still says ₹400 (60-79) / ₹500 (80+) and is superseded — confirm current amount. The PDF names the online portal as 'sspmis.in'; the expected official host sspmis.bihar.gov.in timed out from our network on 2026-11-09, so no online URL is given — reviewer must confirm the correct portal URL. Document list is NOT stated in either official source fetched (third-party sites list Aadhaar, EPIC, bank account — not used); mandatory_docs left empty on purpose. official_url points to betastate.bihar.gov.in (the IPRD-managed state portal); confirm whether state.bihar.gov.in/socialwelfare is preferred. Hindi PDF text is garbled; Hindi fields are drafter translations. Life-certificate / e-KYC requirements not confirmed from an official source."
+  }
+}

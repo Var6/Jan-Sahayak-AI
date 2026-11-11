@@ -1,0 +1,57 @@
+# Jan Sahayak central API: TLS reverse proxy (example).
+#
+# central-api listens on 127.0.0.1:8750 over plain HTTP and must never be
+# exposed directly. Caddy terminates TLS (automatic certificates from
+# Let's Encrypt / ZeroSSL) and forwards to it.
+#
+# central-api must run with -trust-proxy (JS_TRUST_PROXY=true) behind this
+# proxy, otherwise every login looks like it comes from 127.0.0.1 and the
+# per-IP login throttle becomes one global bucket. The header_up line below
+# REPLACES any client-supplied X-Forwarded-For with the real peer address,
+# which is the only value central-api reads (the rightmost entry).
+#
+# Replace central.example.org and the email with real values. Ports 80 and
+# 443 must reach this host for certificate issuance.
+{
+	email ops@example.org
+	# Admin endpoint of Caddy itself stays on localhost (default).
+}
+
+central.example.org {
+	encode zstd gzip
+
+	# Largest legitimate request: a 4 MiB sync batch (syncproto.MaxBodyBytes).
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		-Server
+	}
+
+	# Optional: restrict the admin dashboard and admin API to office / VPN
+	# addresses. Devices only need /v1/sync/*, /v1/devices/* and /healthz.
+	# @admin_outside {
+	# 	path /admin /admin/* /v1/admin/*
+	# 	not remote_ip 203.0.113.0/24
+	# }
+	# respond @admin_outside 403
+
+	reverse_proxy 127.0.0.1:8750 {
+		header_up X-Forwarded-For {remote_host}
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 60s
+		}
+	}
+
+	# Caddy redacts Cookie and Authorization headers in access logs by
+	# default. Request bodies are never logged.
+	log {
+		output file /var/log/caddy/jan-sahayak-central.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+	}
+}

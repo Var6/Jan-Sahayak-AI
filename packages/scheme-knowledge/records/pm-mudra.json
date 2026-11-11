@@ -1,0 +1,125 @@
+{
+  "id": "pm-mudra",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "प्रधानमंत्री मुद्रा योजना (PMMY)",
+    "en": "Pradhan Mantri MUDRA Yojana (PMMY)"
+  },
+  "aliases": [
+    "मुद्रा लोन",
+    "मुद्रा योजना",
+    "शिशु लोन",
+    "किशोर लोन",
+    "तरुण लोन",
+    "mudra loan",
+    "mudra yojana",
+    "PMMY",
+    "shishu loan",
+    "dukan ke liye loan",
+    "व्यापार के लिए लोन"
+  ],
+  "state": "",
+  "department": {
+    "hi": "वित्तीय सेवाएँ विभाग, वित्त मंत्रालय, भारत सरकार / MUDRA लिमिटेड",
+    "en": "Department of Financial Services, Ministry of Finance, Government of India / MUDRA Ltd."
+  },
+  "category": "loan",
+  "keywords": [
+    "लोन",
+    "ऋण",
+    "दुकान",
+    "धंधा",
+    "छोटा व्यापार",
+    "loan",
+    "small business",
+    "micro enterprise",
+    "bank"
+  ],
+  "summary": {
+    "hi": "प्रधानमंत्री मुद्रा योजना में गैर-कृषि आय वाले छोटे कारोबार (निर्माण, प्रोसेसिंग, व्यापार, सेवा और कृषि-संबद्ध गतिविधि) के लिए बैंक, MFI और NBFC से ₹20 लाख तक का ऋण मिलता है। ऋण शिशु, किशोर, तरुण और तरुण प्लस श्रेणियों में बँटा है।",
+    "en": "Under PMMY, small income-generating businesses (manufacturing, processing, trading, services and agri-allied activities) can get loans up to ₹20 lakh from banks, MFIs and NBFCs, in Shishu, Kishor, Tarun and Tarun Plus categories."
+  },
+  "eligibility": [
+    {
+      "hi": "कोई भी भारतीय नागरिक जिसके पास निर्माण, प्रोसेसिंग, व्यापार या सेवा क्षेत्र की गैर-कृषि आय वाली गतिविधि की बिज़नेस योजना हो और ज़रूरत ₹20 लाख तक की हो।",
+      "en": "Any Indian citizen with a business plan for a non-farm income-generating activity in manufacturing, processing, trading or services, with a credit need of up to ₹20 lakh."
+    },
+    {
+      "hi": "ऋण देने वाली संस्था की सामान्य शर्तें लागू होती हैं।",
+      "en": "The usual terms and conditions of the lending institution apply."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "शिशु: ₹50,000 तक; किशोर: ₹50,000 से ₹5 लाख तक; तरुण: ₹5 लाख से ₹10 लाख तक; तरुण प्लस: ₹10 लाख से ₹20 लाख तक (उनके लिए जिन्होंने पहले तरुण ऋण लेकर चुका दिया हो)।",
+      "en": "Shishu: up to ₹50,000; Kishor: above ₹50,000 up to ₹5 lakh; Tarun: above ₹5 lakh up to ₹10 lakh; Tarun Plus: above ₹10 lakh up to ₹20 lakh (for those who availed and repaid a Tarun loan)."
+    },
+    {
+      "hi": "माइक्रो और लघु उद्यमों को ₹20 लाख तक के ऋण पर बैंकों को कोलैटरल (गिरवी) की माँग नहीं करनी है।",
+      "en": "Banks are mandated not to insist on collateral security for loans up to ₹20 lakh to micro and small enterprises."
+    }
+  ],
+  "questions": [
+    {
+      "id": "non_farm_business",
+      "ask": {
+        "hi": "क्या लोन किसी कमाई वाले गैर-खेती काम (जैसे दुकान, सिलाई, मरम्मत, छोटा उद्योग, सेवा) के लिए चाहिए?",
+        "en": "Is the loan for an income-generating non-farm activity (e.g. shop, tailoring, repair, small unit, service)?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [],
+  "application_steps": [
+    {
+      "hi": "किसी भी बैंक शाखा (सरकारी, निजी, ग्रामीण बैंक, स्मॉल फाइनेंस बैंक), MFI या NBFC से संपर्क करें।",
+      "en": "Approach any bank branch (public, private, regional rural, small finance bank), MFI or NBFC."
+    },
+    {
+      "hi": "शिशु के लिए एक पेज का और किशोर/तरुण/तरुण प्लस के लिए तीन पेज का सांकेतिक आवेदन फॉर्म MUDRA वेबसाइट पर है। ज़रूरी कागज़ों की जानकारी बैंक से लें।",
+      "en": "A one-page application format for Shishu and a three-page indicative format for Kishor/Tarun/Tarun Plus are on the MUDRA website. Ask the lender which documents are needed."
+    },
+    {
+      "hi": "ऋण न मिलने पर शिकायत बैंक के क्षेत्रीय/आंचलिक प्रबंधक से कर सकते हैं।",
+      "en": "If the loan is not considered, a grievance can be raised with the bank's Regional/Zonal Manager."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "बैंक शाखा / MFI / NBFC",
+      "en": "Bank branch / MFI / NBFC"
+    }
+  ],
+  "official_url": "",
+  "exceptions": [
+    {
+      "hi": "PMMY ऋण पर कोई सब्सिडी नहीं है; अगर ऋण किसी सरकारी योजना से जुड़ा है जिसमें पूँजी सब्सिडी मिलती है, तो वह लागू हो सकती है।",
+      "en": "There is no subsidy on PMMY loans; if the loan is linked to a government scheme with capital subsidy, that subsidy may apply."
+    },
+    {
+      "hi": "MUDRA खुद सीधे ऋण नहीं देता; यह बैंकों/MFI/NBFC को पुनर्वित्त देता है।",
+      "en": "MUDRA does not lend directly; it refinances banks/MFIs/NBFCs."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.mudra.org.in/FAQ",
+      "title": "MUDRA — Frequently Asked Questions",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Any Indian Citizen who has a business plan for a non-farm income generating activity such as manufacturing, processing, trading or service sector whose credit need is up to 20 lakh can approach either a Bank, MFI or NBFC for availing of MUDRA loans under PMMY. ... There is no subsidy for the loan given under PMMY. ... Banks have been mandated not to insist for collateral security in the case of loans upto 20 lakh extended to the units in the Micro Small Enterprises sector."
+    },
+    {
+      "url": "https://www.mudra.org.in/Offerings",
+      "title": "MUDRA — Offerings",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Shishu : covering loans upto 50,000/- Kishor : covering loans above 50,000/- and upto 5 lakh Tarun : covering loans above 5 lakh and upto 10 lakh Tarun Plus: covering loans above 10 lakh and upto 20 lakh"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. official_url left EMPTY because mudra.org.in is not a .gov.in/.nic.in host (validator rule); reviewer may substitute an official government page (e.g. financialservices.gov.in) after checking it. The FAQ is partly dated (mentions 'three categories' and Gorakhpur zone questions) but its limits match the Offerings page. The FAQ answer on collateral cites an RBI mandate — confirm wording. Document list intentionally empty: FAQ says documents are as per the lending institution. Note: the Bihar Mukhyamantri Udyami Yojana treats earlier Mudra beneficiaries as ineligible — cross-check when advising."
+  }
+}

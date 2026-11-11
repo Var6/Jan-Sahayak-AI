@@ -1,8 +1,10 @@
 // Package syncer uploads outbox events to the central API using the
 // acknowledgement protocol in internal/syncproto.
 //
-// One goroutine (Run) loops: claim a batch → sign → POST → verify ack →
-// apply. Every failure path returns the batch to PENDING. The worker never
+// One goroutine (Run) loops: maintain → claim a batch → sign → POST →
+// verify ack → apply. Every failure path returns the batch to PENDING;
+// transport/HTTP-level failures never consume an event's attempt budget
+// (see package outbox). The worker never
 // deletes anything; deletion is outbox.Housekeep's job and only touches
 // acknowledged rows.
 package syncer
@@ -78,8 +80,15 @@ func New(cfg Config, ob *outbox.Outbox, id identity.Identity, log *slog.Logger) 
 	}
 	return &Worker{
 		cfg: cfg, ob: ob, id: id, log: log, now: time.Now,
-		client: &http.Client{Timeout: cfg.HTTPTimeout},
-		kick:   make(chan struct{}, 1),
+		client: &http.Client{
+			Timeout: cfg.HTTPTimeout,
+			// Never follow redirects: a 3xx (captive portal, misconfigured
+			// proxy, hijacked DNS) is returned as-is and handled as a
+			// non-200 retry, so signed batches are only ever sent to
+			// BaseURL.
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
+		kick: make(chan struct{}, 1),
 	}
 }
 
@@ -114,11 +123,7 @@ func (w *Worker) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-housekeep.C:
-			if p, d, err := w.ob.Housekeep(ctx); err != nil {
-				w.log.Error("sync: housekeep", "err", err)
-			} else if p+d > 0 {
-				w.log.Info("sync: housekeep", "promoted", p, "deleted", d)
-			}
+			w.housekeep(ctx)
 		case <-w.kick:
 		case <-timer.C:
 		}
@@ -133,12 +138,48 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 }
 
+func (w *Worker) housekeep(ctx context.Context) {
+	if p, d, err := w.ob.Housekeep(ctx); err != nil {
+		w.log.Error("sync: housekeep", "err", err)
+	} else if p+d > 0 {
+		w.log.Info("sync: housekeep", "promoted", p, "deleted", d)
+	}
+	if n, err := w.ob.PruneSessions(ctx); err != nil {
+		w.log.Error("sync: prune sessions", "err", err)
+	} else if n > 0 {
+		w.log.Info("sync: pruned old session rows", "count", n)
+	}
+}
+
+// maintain runs outbox maintenance at the start of a sync pass, when no
+// batch of this worker is in flight: stale UPLOADING rows (older than 2×
+// the HTTP timeout) and FAILED rows due for their automatic re-queue go
+// back to PENDING, and retry times pushed out by a backwards clock jump are
+// capped.
+func (w *Worker) maintain(ctx context.Context) {
+	r, err := w.ob.Maintain(ctx, 2*w.cfg.HTTPTimeout)
+	if err != nil {
+		w.log.Error("sync: outbox maintenance", "err", err)
+		return
+	}
+	if r.StaleUploading > 0 {
+		w.log.Warn("sync: re-queued stale uploads", "count", r.StaleUploading)
+	}
+	if r.FailedRequeued > 0 {
+		w.log.Warn("sync: automatically re-queued failed events", "count", r.FailedRequeued)
+	}
+	if r.ClockCapped > 0 {
+		w.log.Warn("sync: capped retry times after a backwards clock jump", "count", r.ClockCapped)
+	}
+}
+
 // drain uploads batches until the outbox has nothing due or an error occurs.
 // It returns how long to wait before the next attempt.
 func (w *Worker) drain(ctx context.Context) time.Duration {
 	if w.cfg.BaseURL == "" {
 		return w.cfg.Interval // sync not configured (offline-only device)
 	}
+	w.maintain(ctx)
 	for i := 0; i < 50 && ctx.Err() == nil; i++ { // bounded per wake-up
 		n, err := w.SyncOnce(ctx)
 		if err != nil {
@@ -199,11 +240,15 @@ func (w *Worker) SyncOnce(ctx context.Context) (int, error) {
 	}
 	results, err := syncproto.VerifyAck(w.cfg.ServerKeys, req, ack)
 	if err != nil {
-		_ = w.ob.RetryBatch(context.WithoutCancel(ctx), batch, err.Error())
+		if rerr := w.ob.RetryBatch(context.WithoutCancel(ctx), batch, err.Error()); rerr != nil {
+			// Rows stay UPLOADING; maintain re-queues them on a later pass.
+			w.log.Error("sync: retry batch", "err", rerr)
+		}
 		return 0, err
 	}
 	out, err := w.ob.ApplyAck(context.WithoutCancel(ctx), batch, results)
 	if err != nil {
+		// Rows stay UPLOADING; maintain re-queues them on a later pass.
 		return 0, fmt.Errorf("apply ack: %w", err)
 	}
 	w.log.Info("sync: batch", "batch", batch, "sent", len(evs), "acked", out.Acknowledged,

@@ -66,7 +66,7 @@ Design rules:
 | `cmd/device-agent` | Wiring, config load, signal handling, graceful shutdown, sd_notify. |
 | `internal/config` | File + env config with validation and hardware profiles (`dev-mac`, `pi5`). |
 | `internal/store` | SQLite (WAL, `synchronous=NORMAL`/`FULL` for outbox), embedded migrations, integrity check at boot, backup. |
-| `internal/session` | One active citizen session; state machine (IDLE → GREETING → LISTENING → PROCESSING → SPEAKING → … → ENDED); 2/9/10-minute inactivity rules; cleanup hooks. |
+| `internal/session` | One active citizen session; activities IDLE → READY ⇄ LISTENING → PROCESSING → SPEAKING → READY/LISTENING; 2/9/10-minute inactivity rules; caps on time spent in PROCESSING/SPEAKING so an abandoned or crashed turn cannot wedge the kiosk; cleanup hooks. |
 | `internal/dialogue` | Conversation engine: topic guard, intent classifier, per-intent deterministic flows, slot filling, retrieval, response composition, LLM rephrase + validator, escalation. |
 | `internal/knowledge` | Scheme records loaded from signed bundles into SQLite FTS5; only `VERIFIED` records produce factual answers. |
 | `internal/ai` | Clients for STT/LLM/TTS runtimes with timeouts, concurrency limit of 1 per runtime, circuit breakers. |
@@ -90,14 +90,15 @@ Design rules:
 
 | Unit | Restart | Memory cap (Pi 5 8 GB, provisional) |
 |---|---|---|
-| `jan-sahayak-agent.service` (Type=notify, WatchdogSec=30) | always, StartLimitBurst | 256 MB |
+| `jan-sahayak-agent.service` (Type=notify, WatchdogSec=30) | always, RestartSec=5, no start limit | 256 MB |
 | `jan-sahayak-stt.service` (whisper-server) | always | 1 GB |
 | `jan-sahayak-llm.service` (llama-server) | always | 2.5 GB |
 | `jan-sahayak-tts.service` | always | 512 MB |
 | `jan-sahayak-kiosk.service` (Chromium `--kiosk`) | always | 1 GB |
 
 The agent sends `WATCHDOG=1` only while its internal liveness probe (DB ping +
-main loop heartbeat) succeeds, so systemd restarts it on genuine hangs rather
+HTTP self-probe + per-loop heartbeats of the health, session and sync loops)
+succeeds, so systemd restarts it on genuine hangs rather
 than on a timer. Caps are finalised after Pi benchmarking (Phase 13).
 
 ## 4. Data flow of one citizen turn

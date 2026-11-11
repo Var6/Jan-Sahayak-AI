@@ -39,22 +39,47 @@ const (
 	MaxPasswordLen = 128
 )
 
-// hashSlots bounds concurrent argon2 computations (each uses ~19 MiB).
-var hashSlots = make(chan struct{}, 2)
+// Password hashing is bounded to two concurrent argon2 computations (each
+// uses ~19 MiB). One slot is shared by everyone; the second is reserved for
+// PriorityTrusted callers (the login handler passes that for clients with no
+// recent failures), so a flood of guesses cannot starve real logins.
+var (
+	sharedSlot   = make(chan struct{}, 1)
+	reservedSlot = make(chan struct{}, 1)
+)
+
+// Priority selects which hashing slots a caller may use.
+type Priority int
+
+const (
+	// PriorityNormal may use only the shared slot.
+	PriorityNormal Priority = iota
+	// PriorityTrusted may use the shared or the reserved slot.
+	PriorityTrusted
+)
 
 // ErrBusy is returned when the hashing slots stay full beyond ctx.
 var ErrBusy = errors.New("auth: password hashing busy")
 
-func acquire(ctx context.Context) error {
+// acquire takes a slot and returns its release function.
+func acquire(ctx context.Context, prio Priority) (func(), error) {
+	if prio == PriorityTrusted {
+		select {
+		case sharedSlot <- struct{}{}:
+			return func() { <-sharedSlot }, nil
+		case reservedSlot <- struct{}{}:
+			return func() { <-reservedSlot }, nil
+		case <-ctx.Done():
+			return nil, ErrBusy
+		}
+	}
 	select {
-	case hashSlots <- struct{}{}:
-		return nil
+	case sharedSlot <- struct{}{}:
+		return func() { <-sharedSlot }, nil
 	case <-ctx.Done():
-		return ErrBusy
+		return nil, ErrBusy
 	}
 }
-
-func release() { <-hashSlots }
 
 // CheckPasswordPolicy validates a new password.
 func CheckPasswordPolicy(pw string) error {
@@ -76,7 +101,8 @@ func HashPassword(ctx context.Context, pw string) (string, error) {
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
-	if err := acquire(ctx); err != nil {
+	release, err := acquire(ctx, PriorityTrusted)
+	if err != nil {
 		return "", err
 	}
 	key := argon2.IDKey([]byte(pw), salt, argonTime, argonMemoryKiB, argonThreads, argonKeyLen)
@@ -90,13 +116,23 @@ func HashPassword(ctx context.Context, pw string) (string, error) {
 // time does not reveal which usernames exist.
 var dummyHash = "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$Jm9Hhb3qkHxGnu7H8I1QXJcLwV1o5i5p7C2BqD3d4mE"
 
-// VerifyDummy burns the same work as a real verification.
-func VerifyDummy(ctx context.Context, pw string) {
-	_, _ = VerifyPassword(ctx, dummyHash, pw)
+// VerifyDummy burns the same work as a real verification, through the same
+// slots, and returns ErrBusy exactly when a real verification would, so an
+// unknown username is indistinguishable from a wrong password (also under
+// load). It never reports a match.
+func VerifyDummy(ctx context.Context, pw string, prio Priority) error {
+	_, err := VerifyPasswordPriority(ctx, dummyHash, pw, prio)
+	return err
 }
 
-// VerifyPassword checks pw against an encoded hash in constant time.
+// VerifyPassword checks pw against an encoded hash in constant time, using
+// only the shared hashing slot.
 func VerifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
+	return VerifyPasswordPriority(ctx, encoded, pw, PriorityNormal)
+}
+
+// VerifyPasswordPriority is VerifyPassword with an explicit slot priority.
+func VerifyPasswordPriority(ctx context.Context, encoded, pw string, prio Priority) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" {
 		return false, errors.New("auth: unsupported hash format")
@@ -125,7 +161,8 @@ func VerifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
 	if len(pw) > MaxPasswordLen {
 		return false, nil
 	}
-	if err := acquire(ctx); err != nil {
+	release, err := acquire(ctx, prio)
+	if err != nil {
 		return false, err
 	}
 	got := argon2.IDKey([]byte(pw), salt, t, m, p, uint32(len(want)))

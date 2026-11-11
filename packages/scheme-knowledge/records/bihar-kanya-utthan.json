@@ -1,0 +1,134 @@
+{
+  "id": "bihar-kanya-utthan",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "मुख्यमंत्री कन्या उत्थान योजना (0–2 साल की बच्चियों वाला भाग)",
+    "en": "Mukhyamantri Kanya Utthan Yojana (component for girls aged 0–2)"
+  },
+  "aliases": [
+    "कन्या उत्थान योजना",
+    "कन्या उत्थान",
+    "kanya utthan",
+    "kanya utthan yojana",
+    "MKUY",
+    "बेटी जन्म पर पैसा",
+    "बच्ची के जन्म पर सहायता"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "समाज कल्याण विभाग, बिहार सरकार (बाल विकास परियोजना / ICDS)",
+    "en": "Social Welfare Department, Government of Bihar (Child Development Project / ICDS)"
+  },
+  "category": "women_child",
+  "keywords": [
+    "बेटी",
+    "बच्ची",
+    "कन्या",
+    "जन्म",
+    "girl child",
+    "birth",
+    "daughter",
+    "ICDS",
+    "CDPO"
+  ],
+  "summary": {
+    "hi": "मुख्यमंत्री कन्या उत्थान योजना के समाज कल्याण विभाग वाले भाग में बच्ची के जन्म पर और एक साल की होने पर (आधार पंजीकरण के बाद) माता/पिता/अभिभावक के बैंक खाते में राशि दी जाती है।",
+    "en": "Under the Social Welfare Department component of MKUY, money is paid into the parent's/guardian's bank account at a girl's birth and again when she turns one (after Aadhaar registration)."
+  },
+  "eligibility": [
+    {
+      "hi": "0 से 2 साल की बच्ची।",
+      "en": "Girl child aged 0 to 2 years."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "बच्ची के जन्म पर माता/पिता/अभिभावक के बैंक खाते में ₹2000।",
+      "en": "₹2000 into the parent's/guardian's bank account on the girl's birth."
+    },
+    {
+      "hi": "बच्ची के एक साल पूरा होने और आधार पंजीकरण के बाद उसी खाते में ₹1000 और।",
+      "en": "A further ₹1000 into the same account after the girl completes one year and is registered for Aadhaar."
+    }
+  ],
+  "questions": [
+    {
+      "id": "girl_under_2",
+      "ask": {
+        "hi": "क्या बच्ची की उम्र 2 साल से कम है?",
+        "en": "Is the girl younger than 2 years?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "बच्ची का जन्म प्रमाण पत्र",
+        "en": "Birth certificate of the girl"
+      }
+    },
+    {
+      "name": {
+        "hi": "माता / पिता / अभिभावक का आधार नंबर",
+        "en": "Aadhaar number of the parent / guardian"
+      }
+    },
+    {
+      "name": {
+        "hi": "बैंक पासबुक की फोटोकॉपी",
+        "en": "Photocopy of the bank passbook"
+      }
+    },
+    {
+      "name": {
+        "hi": "1–2 साल की बच्ची के लिए: ऊपर के कागज़ों के साथ बच्ची का आधार नंबर",
+        "en": "For a girl aged 1–2 years: the girl's Aadhaar number in addition to the above"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "विहित प्रपत्र में लिखित आवेदन RTPS काउंटर पर जमा करें।",
+      "en": "Submit a written application in the prescribed form at an RTPS counter."
+    },
+    {
+      "hi": "RTPS सूची के अनुसार बाल विकास परियोजना पदाधिकारी (CDPO) 21 कार्य दिवस में निर्णय देते हैं; अपील जिला कार्यक्रम पदाधिकारी के पास।",
+      "en": "Per the RTPS list, the Child Development Project Officer (CDPO) decides within 21 working days; appeal lies with the District Programme Officer."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "RTPS काउंटर",
+      "en": "RTPS counter"
+    }
+  ],
+  "official_url": "https://betastate.bihar.gov.in/SocialWelfare/DyPageView.aspx?PageTitleID=1811",
+  "exceptions": [
+    {
+      "hi": "कन्या उत्थान योजना के इंटर/स्नातक पास करने पर मिलने वाले भाग शिक्षा विभाग देखता है — वह जानकारी इस रिकॉर्ड में नहीं है।",
+      "en": "The intermediate/graduation components of Kanya Utthan are run by the Education Department and are not covered by this record."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://serviceonline.bihar.gov.in/resources/homePage/10/Document/Bihar_RTPS_SWD_Services.pdf",
+      "title": "Bihar RTPS Act — Services of Social Welfare Department (SWD)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "4. Chief Minister Daughter Regeneration Scheme | (A) For Girl of 0-1 year old: 1. Birth Certificate of Beneficiary 2. Aadhaar number of the beneficiary's parent / guardian 3. Photocopy of bank passbook (B) For Girl of 1-2 year old (In addition to the above): 4. Aadhaar number of girl | Child Development Project Officer (21)"
+    },
+    {
+      "url": "https://betastate.bihar.gov.in/file_2/FileUpload/2024/Apr/08-Apr-2024/38/DyPage/8eb19e21-b762-4e62-ae83-fc38dec7a6c1.pdf",
+      "title": "Social Welfare Department, Bihar — मुख्यमंत्री कन्या उत्थान योजना (scheme note, uploaded Apr 2024)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(Hindi text layer heavily garbled; reading of sections 3–4) कन्या शिशु के जन्म पर शिशु के माता/पिता/अभिभावक के बैंक खाते में 2000/- दिया जाता तथा कन्या शिशु के 01 वर्ष पूरे होने तथा आधार पंजीकरण कराये जाने के बाद 1000/- रूपये उक्त खाते में पुनः दिया जाता है ... पात्रता: 0-2 वर्ष तक के कन्या शिशु ... RTPS काउंटर पर जमा कर योजना का लाभ ले सकेंगे"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. SCOPE: covers only the Social Welfare Department (0–2 years) component. Citizens usually ask about the Education Department components (intermediate / graduation incentives via medhasoft.bih.nic.in) — that portal timed out from our network on 2026-11-09, so those amounts and rules are NOT included; a separate record should be drafted from the Education Department guideline. AMOUNTS (₹2000 + ₹1000) are a reading of a heavily garbled Hindi text layer in the SW note uploaded Apr 2024 — reviewer must check the PDF visually and confirm current amounts. RTPS table calls the scheme 'Chief Minister Daughter Regeneration Scheme' (machine-like translation of the name)."
+  }
+}

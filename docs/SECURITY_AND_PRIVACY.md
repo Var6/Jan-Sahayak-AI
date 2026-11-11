@@ -32,8 +32,8 @@ Status: design + implemented controls as of 2026-11-09. Items marked
 | Sync integrity | Signed requests (timestamp + nonce), signed per-event acknowledgements, pinned server keys with key ids for rotation. |
 | Process isolation | AI runtimes in separate processes; systemd hardening (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`, `ReadWritePaths=/var/lib/jan-sahayak`, `MemoryMax`). |
 | LLM permissions | None. No tools, shell, filesystem, database or network. Receives only engine-built prompts; output validated. |
-| Updates | Signed release bundles only, with rollback (Phase 12–13). Unverified updates are never installed. |
-| Model supply chain | Every model file SHA-256-verified before install (`scripts/models/install.sh`). |
+| Updates | Every release ships `SHA256SUMS`; the Pi installer runs `verify-release.sh` before copying anything and refuses on any mismatch or unlisted file. With `/etc/jan-sahayak/release-allowed-signers` present it also requires an SSH signature (`ssh-keygen -Y verify`). Signing-key custody pending (D-025). Rollback planned (Phase 12–13). |
+| Model supply chain | Every model file — including each file inside an archive — has a pinned SHA-256; `scripts/models/install.sh` verifies before install and `--verify` re-hashes every file. |
 | Encryption at rest | Pi: LUKS full-disk encryption of the data partition with key sealed to device **[to evaluate: Pi 5 has no TPM; options are a passphrase at provisioning or an external secure element]**. The device holds no personal data in v1, which limits the impact. |
 | Kiosk lockdown | Chromium `--kiosk --incognito`, no URL bar, no downloads, keyboard shortcuts disabled, auto-restart. |
 
@@ -43,7 +43,15 @@ Status: design + implemented controls as of 2026-11-09. Items marked
   (random 32-byte token, stored hashed; `HttpOnly; Secure; SameSite=Strict`).
 * RBAC roles: viewer, device_admin, scheme_editor, scheme_reviewer, auditor,
   admin. A reviewer cannot verify their own edit.
-* Audit log is append-only (database trigger blocks UPDATE/DELETE).
+* Audit log, scheme versions and published bundles are append-only: database
+  triggers block UPDATE/DELETE, and in production the API runs as a separate
+  runtime role that owns no tables and has only SELECT/INSERT on them, so it
+  cannot disable those triggers (`deployment/server/README.md`,
+  `JS_STRICT_DB_ROLE=true`).
+* Scheme verification is four-eyes: a reviewer cannot verify a scheme if they
+  edited any version since its last VERIFIED version (handler + trigger).
+* Admin login: uniform 401 responses and progressive per-IP/per-username
+  delays (no hard lockout that could be abused to lock out real admins).
 * Device revocation is a single status change; revoked devices cannot sync.
 * TLS for all device ↔ server traffic (terminated at the server or a reverse
   proxy) in addition to the application-level signatures.

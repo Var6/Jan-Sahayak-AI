@@ -41,8 +41,18 @@ type config struct {
 	sttTimeout time.Duration
 	ttsTimeout time.Duration
 	busyWait   time.Duration
+	ttsMaxRate int
 	noWarmup   bool
 }
+
+// Shutdown budget. systemd's TimeoutStopSec for the unit is 45 s: HTTP
+// shutdown (10 s) + draining in-flight inference (≤ 25 s) leaves margin
+// before SIGKILL. An inference still running after the drain budget is
+// abandoned without freeing native engines (the process exits anyway).
+const (
+	httpShutdownBudget = 10 * time.Second
+	maxDrainBudget     = 25 * time.Second
+)
 
 func envStr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
@@ -81,6 +91,7 @@ func parseFlags(args []string) (config, error) {
 	fs.DurationVar(&c.sttTimeout, "stt-timeout", envDur("JS_STT_TIMEOUT", 15*time.Second), "per-request STT timeout")
 	fs.DurationVar(&c.ttsTimeout, "tts-timeout", envDur("JS_TTS_TIMEOUT", 30*time.Second), "per-request TTS timeout")
 	fs.DurationVar(&c.busyWait, "busy-wait", envDur("JS_BUSY_WAIT", 2*time.Second), "max wait for a busy engine before 503")
+	fs.IntVar(&c.ttsMaxRate, "tts-max-rate", envInt("JS_TTS_MAX_RATE", 22050), "cap synthesised audio at this sample rate by halving (0 = native rate)")
 	fs.BoolVar(&c.noWarmup, "no-warmup", false, "skip warm-up inference at boot")
 	if err := fs.Parse(args); err != nil {
 		return c, err
@@ -99,6 +110,9 @@ func parseFlags(args []string) (config, error) {
 	}
 	if c.threads < 1 || c.threads > 16 {
 		return c, fmt.Errorf("-threads must be 1..16")
+	}
+	if c.ttsMaxRate != 0 && (c.ttsMaxRate < 8000 || c.ttsMaxRate > 48000) {
+		return c, fmt.Errorf("-tts-max-rate must be 0 or 8000..48000")
 	}
 	if c.ttsSteps < 1 || c.ttsSteps > 32 {
 		return c, fmt.Errorf("-tts-steps must be 1..32")
@@ -203,6 +217,7 @@ func run(args []string) int {
 		BusyWait:   c.busyWait,
 		TTSLangs:   strings.Split(c.ttsLangs, ","),
 		DefaultSID: c.ttsSID,
+		TTSMaxRate: c.ttsMaxRate,
 	}, log)
 
 	ln, err := net.Listen("tcp", c.addr)
@@ -224,6 +239,15 @@ func run(args []string) int {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+
+	// A native inference that never returns holds its engine slot forever
+	// and cannot be interrupted. Once it has run for 3× its timeout, exit
+	// non-zero so systemd (Restart=always) starts a fresh worker.
+	go srv.WatchWedged(ctx, time.Second, func(engine string, held time.Duration) {
+		log.Error("inference hung; exiting so systemd restarts the worker",
+			"engine", engine, "held_ms", held.Milliseconds(), "limit_factor", server.WedgedFactor)
+		os.Exit(1)
+	})
 
 	type loadResult struct {
 		l   *loaded
@@ -262,15 +286,16 @@ wait:
 		}
 	}
 
-	shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shCtx, cancel := context.WithTimeout(context.Background(), httpShutdownBudget)
 	defer cancel()
 	if err := hs.Shutdown(shCtx); err != nil {
 		log.Warn("http shutdown", "err", err)
+		_ = hs.Close()
 	}
 	if eng != nil {
 		// Native engines may still be running a request that timed out;
 		// free them only once every inference goroutine has returned.
-		dCtx, dCancel := context.WithTimeout(context.Background(), max(c.sttTimeout, c.ttsTimeout))
+		dCtx, dCancel := context.WithTimeout(context.Background(), min(max(c.sttTimeout, c.ttsTimeout), maxDrainBudget))
 		defer dCancel()
 		if err := srv.Drain(dCtx); err != nil {
 			log.Warn("inference still running at exit; not freeing native engines", "err", err)

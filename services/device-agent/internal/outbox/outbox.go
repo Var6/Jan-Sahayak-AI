@@ -2,6 +2,24 @@
 // them through the acknowledgement state machine. The SQLite triggers in
 // store/migrations are the last line of defence; this package is the normal
 // path and never issues a DELETE for a row that is not DELETE_ELIGIBLE.
+//
+// Retry policy (lead-engineer decision 1, reliability review finding 2):
+//   - Transport and HTTP-level failures (no network, DNS, timeout, non-200,
+//     invalid or unverifiable ack) never consume an event's attempt budget:
+//     RetryBatch returns the batch to PENDING, immediately due, and the sync
+//     worker's own backoff (15 s → 30 min with jitter) paces the retries. An
+//     offline kiosk therefore keeps every event PENDING however long it is
+//     offline.
+//   - Only a per-event verdict inside a verified ack consumes an attempt
+//     (missing result, unexpected status, hash mismatch, rejected).
+//   - After MaxAttempts verdicts, or on "rejected", an event becomes FAILED.
+//     FAILED events are kept and automatically re-queued (attempts reset)
+//     FailedRequeueAfter (24 h) later by Maintain; RequeueFailed is the
+//     operator command that re-queues FAILED and CONFLICT events at once.
+//     CONFLICT is never re-queued automatically.
+//
+// Timestamps used for scheduling are stored fixed-width (RFC 3339 UTC with
+// exactly nine fractional digits) so SQLite text comparison is time order.
 package outbox
 
 import (
@@ -37,19 +55,32 @@ type Config struct {
 	AckRetention time.Duration
 	// MaxAttempts after which an event goes to FAILED (still kept).
 	MaxAttempts int
-	// Backoff bounds.
+	// Backoff bounds for per-event verdict retries.
 	BaseBackoff time.Duration
 	MaxBackoff  time.Duration
+	// FailedRequeueAfter is how long a FAILED event waits before Maintain
+	// automatically re-queues it with a fresh attempt budget.
+	FailedRequeueAfter time.Duration
+	// SessionRetention is how long local anonymous session rows are kept
+	// (PruneSessions); rows are pruned only once no unacknowledged outbox
+	// event refers to them.
+	SessionRetention time.Duration
 }
 
 // DefaultConfig is sized for a kiosk: ~200 sessions/day × a few events.
 var DefaultConfig = Config{
-	MaxRows:      100_000,
-	AckRetention: 7 * 24 * time.Hour,
-	MaxAttempts:  50,
-	BaseBackoff:  30 * time.Second,
-	MaxBackoff:   6 * time.Hour,
+	MaxRows:            100_000,
+	AckRetention:       7 * 24 * time.Hour,
+	MaxAttempts:        50,
+	BaseBackoff:        30 * time.Second,
+	MaxBackoff:         6 * time.Hour,
+	FailedRequeueAfter: 24 * time.Hour,
+	SessionRetention:   90 * 24 * time.Hour,
 }
+
+// chunk bounds every bulk UPDATE/DELETE issued by housekeeping so no single
+// write transaction grows with the table.
+const chunk = 1000
 
 // ErrFull means the outbox reached MaxRows.
 var ErrFull = errors.New("outbox: full; refusing new events (existing events are kept)")
@@ -61,18 +92,39 @@ type Outbox struct {
 	now func() time.Time
 }
 
-// New creates an Outbox. now may be nil.
+// New creates an Outbox. now may be nil. Zero Config fields take their
+// DefaultConfig value.
 func New(db *sql.DB, cfg Config, now func() time.Time) *Outbox {
 	if now == nil {
 		now = time.Now
 	}
-	if cfg.MaxRows <= 0 {
-		cfg = DefaultConfig
+	d := DefaultConfig
+	setDef := func(v *time.Duration, def time.Duration) {
+		if *v <= 0 {
+			*v = def
+		}
 	}
+	if cfg.MaxRows <= 0 {
+		cfg.MaxRows = d.MaxRows
+	}
+	if cfg.MaxAttempts <= 0 {
+		cfg.MaxAttempts = d.MaxAttempts
+	}
+	setDef(&cfg.AckRetention, d.AckRetention)
+	setDef(&cfg.BaseBackoff, d.BaseBackoff)
+	setDef(&cfg.MaxBackoff, d.MaxBackoff)
+	setDef(&cfg.FailedRequeueAfter, d.FailedRequeueAfter)
+	setDef(&cfg.SessionRetention, d.SessionRetention)
 	return &Outbox{db: db, cfg: cfg, now: now}
 }
 
-func ts(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
+// TimeLayout is the fixed-width timestamp format written by the outbox:
+// RFC 3339, UTC, exactly nine fractional digits (30 bytes). Fixed width makes
+// lexical order equal chronological order in SQL comparisons, and it is
+// still valid RFC 3339 for the wire.
+const TimeLayout = "2006-01-02T15:04:05.000000000Z"
+
+func ts(t time.Time) string { return t.UTC().Format(TimeLayout) }
 
 // Execer is satisfied by *sql.DB and *sql.Tx so events can be enqueued in
 // the same transaction as the state change that produced them.
@@ -100,8 +152,8 @@ func (o *Outbox) Enqueue(ctx context.Context, x Execer, eventType string, payloa
 	if eventType == "" || len(eventType) > syncproto.MaxEventTypeLen || strings.ContainsAny(eventType, "\n|") {
 		return "", errors.New("outbox: bad event type")
 	}
-	var n int
-	if err := x.QueryRowContext(ctx, `SELECT count(*) FROM outbox_events`).Scan(&n); err != nil {
+	n, err := rowCount(ctx, x)
+	if err != nil {
 		return "", err
 	}
 	if n >= o.cfg.MaxRows {
@@ -119,8 +171,24 @@ func (o *Outbox) Enqueue(ctx context.Context, x Execer, eventType string, payloa
 	return id, nil
 }
 
+// rowCount reads the trigger-maintained row counter (O(1); schema v2).
+func rowCount(ctx context.Context, x Execer) (int, error) {
+	var n int
+	err := x.QueryRowContext(ctx, `SELECT n FROM outbox_counter WHERE id = 1`).Scan(&n)
+	return n, err
+}
+
+// Full reports whether the outbox has reached MaxRows, i.e. new analytics
+// events are being refused (ErrFull). Health checks use it to report
+// REQUIRES_ATTENTION. A read error is reported as not full; database
+// health is checked separately.
+func (o *Outbox) Full(ctx context.Context) bool {
+	n, err := rowCount(ctx, o.db)
+	return err == nil && n >= o.cfg.MaxRows
+}
+
 // Claim moves up to max due PENDING events to UPLOADING under a new batch id
-// and returns them as wire events.
+// and returns them as wire events. Claiming does not consume an attempt.
 func (o *Outbox) Claim(ctx context.Context, max int) (string, []syncproto.Event, error) {
 	if max <= 0 || max > syncproto.MaxBatchEvents {
 		max = syncproto.MaxBatchEvents
@@ -155,9 +223,10 @@ func (o *Outbox) Claim(ctx context.Context, max int) (string, []syncproto.Event,
 		return "", nil, nil
 	}
 	batch := ids.NewV7()
+	claimedAt := ts(o.now())
 	for _, e := range evs {
 		if _, err := tx.ExecContext(ctx, `UPDATE outbox_events
-			SET state='UPLOADING', upload_batch_id=?, attempts=attempts+1 WHERE id=? AND state='PENDING'`, batch, e.ID); err != nil {
+			SET state='UPLOADING', upload_batch_id=?, claimed_at=? WHERE id=? AND state='PENDING'`, batch, claimedAt, e.ID); err != nil {
 			return "", nil, err
 		}
 	}
@@ -176,8 +245,9 @@ type Outcome struct {
 }
 
 // ApplyAck applies VERIFIED per-event results for a batch. Events of the
-// batch without a durable result go back to PENDING with backoff. Call this
-// only with results returned by syncproto.VerifyAck.
+// batch without a durable result go back to PENDING with backoff; each such
+// per-event verdict consumes one attempt. Call this only with results
+// returned by syncproto.VerifyAck.
 func (o *Outbox) ApplyAck(ctx context.Context, batchID string, results map[string]syncproto.Result) (Outcome, error) {
 	var out Outcome
 	tx, err := o.db.BeginTx(ctx, nil)
@@ -219,15 +289,21 @@ func (o *Outbox) ApplyAck(ctx context.Context, batchID string, results map[strin
 			_, err = tx.ExecContext(ctx, `UPDATE outbox_events SET state='CONFLICT', last_error=? WHERE id=?`, trunc("conflict: "+res.Reason), r.id)
 			out.Conflicts++
 		case ok && res.Status == syncproto.StatusRejected:
-			_, err = tx.ExecContext(ctx, `UPDATE outbox_events SET state='FAILED', last_error=? WHERE id=?`, trunc("rejected: "+res.Reason), r.id)
+			_, err = tx.ExecContext(ctx, `UPDATE outbox_events SET state='FAILED', attempts=attempts+1, next_attempt_at=?, last_error=? WHERE id=?`,
+				ts(now.Add(o.cfg.FailedRequeueAfter)), trunc("rejected: "+res.Reason), r.id)
 			out.Failed++
 		default:
 			reason := "no durable acknowledgement"
 			if ok {
 				reason = fmt.Sprintf("unexpected result status=%q or hash mismatch", res.Status)
 			}
-			err = o.retryLocked(ctx, tx, r.id, r.attempts, reason, now)
-			out.Retried++
+			var failed bool
+			failed, err = o.verdictRetryLocked(ctx, tx, r.id, r.attempts+1, reason, now)
+			if failed {
+				out.Failed++
+			} else {
+				out.Retried++
+			}
 		}
 		if err != nil {
 			return out, err
@@ -236,50 +312,29 @@ func (o *Outbox) ApplyAck(ctx context.Context, batchID string, results map[strin
 	return out, tx.Commit()
 }
 
-// RetryBatch returns every UPLOADING event of a batch to PENDING (network
-// error, invalid ack, server 5xx).
+// RetryBatch returns every UPLOADING event of a batch to PENDING after a
+// transport or HTTP-level failure (network error, timeout, invalid ack,
+// server 5xx). It does NOT consume attempts and makes the events due
+// immediately: the sync worker's own backoff paces transport retries, so a
+// kiosk that is offline for months loses nothing and fails nothing.
 func (o *Outbox) RetryBatch(ctx context.Context, batchID, reason string) error {
-	tx, err := o.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	rows, err := tx.QueryContext(ctx, `SELECT id, attempts FROM outbox_events WHERE upload_batch_id=? AND state='UPLOADING'`, batchID)
-	if err != nil {
-		return err
-	}
-	type row struct {
-		id       string
-		attempts int
-	}
-	var rs []row
-	for rows.Next() {
-		var r row
-		if err := rows.Scan(&r.id, &r.attempts); err != nil {
-			rows.Close()
-			return err
-		}
-		rs = append(rs, r)
-	}
-	rows.Close()
-	now := o.now()
-	for _, r := range rs {
-		if err := o.retryLocked(ctx, tx, r.id, r.attempts, reason, now); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
+	_, err := o.db.ExecContext(ctx, `UPDATE outbox_events SET state='PENDING', next_attempt_at=?, last_error=?
+		WHERE upload_batch_id=? AND state='UPLOADING'`, ts(o.now()), trunc(reason), batchID)
+	return err
 }
 
-func (o *Outbox) retryLocked(ctx context.Context, tx *sql.Tx, id string, attempts int, reason string, now time.Time) error {
+// verdictRetryLocked records one consumed attempt for a per-event verdict:
+// back to PENDING with exponential backoff, or FAILED (kept, auto-requeued
+// after FailedRequeueAfter) once MaxAttempts is reached.
+func (o *Outbox) verdictRetryLocked(ctx context.Context, tx *sql.Tx, id string, attempts int, reason string, now time.Time) (failed bool, err error) {
 	if attempts >= o.cfg.MaxAttempts {
-		_, err := tx.ExecContext(ctx, `UPDATE outbox_events SET state='FAILED', last_error=? WHERE id=?`,
-			trunc(fmt.Sprintf("gave up after %d attempts: %s", attempts, reason)), id)
-		return err
+		_, err := tx.ExecContext(ctx, `UPDATE outbox_events SET state='FAILED', attempts=?, next_attempt_at=?, last_error=? WHERE id=?`,
+			attempts, ts(now.Add(o.cfg.FailedRequeueAfter)), trunc(fmt.Sprintf("gave up after %d attempts: %s", attempts, reason)), id)
+		return true, err
 	}
-	_, err := tx.ExecContext(ctx, `UPDATE outbox_events SET state='PENDING', next_attempt_at=?, last_error=? WHERE id=?`,
-		ts(now.Add(o.Backoff(attempts))), trunc(reason), id)
-	return err
+	_, err = tx.ExecContext(ctx, `UPDATE outbox_events SET state='PENDING', attempts=?, next_attempt_at=?, last_error=? WHERE id=?`,
+		attempts, ts(now.Add(o.Backoff(attempts))), trunc(reason), id)
+	return false, err
 }
 
 // Backoff returns the delay before attempt n+1: exponential with a cap and
@@ -308,7 +363,9 @@ func (o *Outbox) RecoverInterrupted(ctx context.Context) (int64, error) {
 	return res.RowsAffected()
 }
 
-// RequeueFailed moves FAILED/CONFLICT events back to PENDING (operator action).
+// RequeueFailed moves FAILED and CONFLICT events back to PENDING with a
+// fresh attempt budget. This is the operator command; FAILED (but not
+// CONFLICT) events are also re-queued automatically by Maintain.
 func (o *Outbox) RequeueFailed(ctx context.Context) (int64, error) {
 	res, err := o.db.ExecContext(ctx, `UPDATE outbox_events SET state='PENDING', attempts=0, next_attempt_at=?
 		WHERE state IN ('FAILED','CONFLICT')`, ts(o.now()))
@@ -318,24 +375,118 @@ func (o *Outbox) RequeueFailed(ctx context.Context) (int64, error) {
 	return res.RowsAffected()
 }
 
+// MaintainResult reports what Maintain changed.
+type MaintainResult struct {
+	// StaleUploading rows were left in UPLOADING by a failed ApplyAck or
+	// RetryBatch and went back to PENDING.
+	StaleUploading int64
+	// FailedRequeued rows were FAILED for FailedRequeueAfter and went back to
+	// PENDING with a fresh attempt budget.
+	FailedRequeued int64
+	// ClockCapped rows had a retry time further in the future than any
+	// schedule can produce (the wall clock went backwards, e.g. a Pi without
+	// an RTC battery booting before NTP) and were pulled in.
+	ClockCapped int64
+}
+
+// Maintain runs at the start of every sync pass, when no batch of this
+// worker is in flight:
+//   - caps next_attempt_at at now+MaxBackoff (PENDING) and
+//     now+FailedRequeueAfter (FAILED), so a backwards clock jump cannot
+//     delay retries by the size of the jump;
+//   - re-queues UPLOADING rows claimed more than staleAfter ago (or "in
+//     the future" after a clock jump);
+//   - re-queues FAILED rows whose FailedRequeueAfter has elapsed.
+func (o *Outbox) Maintain(ctx context.Context, staleAfter time.Duration) (MaintainResult, error) {
+	var r MaintainResult
+	now := o.now()
+	nowS := ts(now)
+	exec := func(dst *int64, q string, args ...any) error {
+		res, err := o.db.ExecContext(ctx, q, args...)
+		if err != nil {
+			return err
+		}
+		n, _ := res.RowsAffected()
+		*dst += n
+		return nil
+	}
+	pendCap, failCap := ts(now.Add(o.cfg.MaxBackoff)), ts(now.Add(o.cfg.FailedRequeueAfter))
+	if err := exec(&r.ClockCapped, `UPDATE outbox_events SET next_attempt_at=? WHERE state='PENDING' AND next_attempt_at > ?`, pendCap, pendCap); err != nil {
+		return r, err
+	}
+	if err := exec(&r.ClockCapped, `UPDATE outbox_events SET next_attempt_at=? WHERE state='FAILED' AND next_attempt_at > ?`, failCap, failCap); err != nil {
+		return r, err
+	}
+	if staleAfter > 0 {
+		if err := exec(&r.StaleUploading, `UPDATE outbox_events SET state='PENDING', next_attempt_at=?,
+			last_error='upload claim went stale (ack or retry was not applied)'
+			WHERE state='UPLOADING' AND (claimed_at IS NULL OR claimed_at <= ? OR claimed_at > ?)`,
+			nowS, ts(now.Add(-staleAfter)), nowS); err != nil {
+			return r, err
+		}
+	}
+	if err := exec(&r.FailedRequeued, `UPDATE outbox_events SET state='PENDING', attempts=0, next_attempt_at=?
+		WHERE state='FAILED' AND next_attempt_at <= ?`, nowS, nowS); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
 // Housekeep promotes ACKNOWLEDGED rows older than AckRetention to
-// DELETE_ELIGIBLE and deletes DELETE_ELIGIBLE rows. Only acknowledged rows
-// are ever touched.
+// DELETE_ELIGIBLE and deletes DELETE_ELIGIBLE rows, in chunks of 1000 rows
+// per statement. Only acknowledged rows are ever touched.
 func (o *Outbox) Housekeep(ctx context.Context) (promoted, deleted int64, err error) {
 	now := o.now()
-	cut := ts(now.Add(-o.cfg.AckRetention))
-	res, err := o.db.ExecContext(ctx, `UPDATE outbox_events SET state='DELETE_ELIGIBLE', delete_eligible_at=?
-		WHERE state='ACKNOWLEDGED' AND acked_at <= ?`, ts(now), cut)
-	if err != nil {
+	// A backwards clock jump must not postpone deletion by the jump size.
+	if _, err := o.db.ExecContext(ctx, `UPDATE outbox_events SET acked_at=? WHERE state='ACKNOWLEDGED' AND acked_at > ?`, ts(now), ts(now)); err != nil {
 		return 0, 0, err
 	}
-	promoted, _ = res.RowsAffected()
-	res, err = o.db.ExecContext(ctx, `DELETE FROM outbox_events WHERE state='DELETE_ELIGIBLE'`)
+	cut := ts(now.Add(-o.cfg.AckRetention))
+	promoted, err = o.chunked(ctx, `UPDATE outbox_events SET state='DELETE_ELIGIBLE', delete_eligible_at=?
+		WHERE rowid IN (SELECT rowid FROM outbox_events WHERE state='ACKNOWLEDGED' AND acked_at <= ? LIMIT ?)`, ts(now), cut, chunk)
 	if err != nil {
 		return promoted, 0, err
 	}
-	deleted, _ = res.RowsAffected()
-	return promoted, deleted, nil
+	deleted, err = o.chunked(ctx, `DELETE FROM outbox_events
+		WHERE rowid IN (SELECT rowid FROM outbox_events WHERE state='DELETE_ELIGIBLE' LIMIT ?)`, chunk)
+	return promoted, deleted, err
+}
+
+// PruneSessions deletes local session rows that started more than
+// SessionRetention ago and that no unacknowledged outbox event (PENDING,
+// UPLOADING, FAILED, CONFLICT) refers to — i.e. their session.ended (and
+// dialogue.turn) events were acknowledged or have already been deleted after
+// acknowledgement, or never existed (a session cut short by a power cut).
+// Outbox rows themselves are never touched here.
+func (o *Outbox) PruneSessions(ctx context.Context) (int64, error) {
+	cut := ts(o.now().Add(-o.cfg.SessionRetention))
+	return o.chunked(ctx, `DELETE FROM sessions WHERE rowid IN (
+		SELECT rowid FROM sessions
+		 WHERE started_at < ?
+		   AND id NOT IN (SELECT json_extract(payload, '$.session_id') FROM outbox_events
+		                   WHERE state IN ('PENDING','UPLOADING','FAILED','CONFLICT')
+		                     AND json_extract(payload, '$.session_id') IS NOT NULL)
+		 LIMIT ?)`, cut, chunk)
+}
+
+// chunked repeats a bounded statement until it affects fewer rows than one
+// chunk or ctx ends. Each repetition is its own short transaction.
+func (o *Outbox) chunked(ctx context.Context, q string, args ...any) (int64, error) {
+	var total int64
+	for {
+		if err := ctx.Err(); err != nil {
+			return total, err
+		}
+		res, err := o.db.ExecContext(ctx, q, args...)
+		if err != nil {
+			return total, err
+		}
+		n, _ := res.RowsAffected()
+		total += n
+		if n < chunk {
+			return total, nil
+		}
+	}
 }
 
 // Stats counts events per state plus the age of the oldest pending event.
@@ -344,6 +495,9 @@ type Stats struct {
 	Total           int            `json:"total"`
 	OldestPendingAt string         `json:"oldest_pending_at,omitempty"`
 	Capacity        int            `json:"capacity"`
+	// Full is true when Total has reached Capacity and new events are
+	// refused; health reports this as REQUIRES_ATTENTION.
+	Full bool `json:"full"`
 }
 
 // Stats returns current counts.
@@ -369,6 +523,7 @@ func (o *Outbox) Stats(ctx context.Context) (Stats, error) {
 	var oldest sql.NullString
 	_ = o.db.QueryRowContext(ctx, `SELECT min(created_at) FROM outbox_events WHERE state IN ('PENDING','UPLOADING','FAILED','CONFLICT')`).Scan(&oldest)
 	s.OldestPendingAt = oldest.String
+	s.Full = s.Total >= s.Capacity
 	return s, nil
 }
 

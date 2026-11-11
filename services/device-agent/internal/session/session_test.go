@@ -92,14 +92,124 @@ func TestInteractionResetsClock(t *testing.T) {
 	}
 }
 
+// Busy states are exempt from the idle rules only up to their cap. (This
+// test previously asserted that PROCESSING never times out, even after 30
+// minutes; that wedged the kiosk after a panicking turn — reliability
+// finding 5.)
 func TestNoTimeoutWhileDeviceBusy(t *testing.T) {
 	m, clk := newTest()
 	s, _ := m.Start("hi")
 	_, _ = m.SetActivity(s.ID, Processing)
-	clk.Advance(30 * time.Minute)
+	clk.Advance(DefaultMaxProcessing - time.Second)
 	m.Tick()
 	if m.Current().Activity != Processing {
-		t.Fatal("must not time out while PROCESSING")
+		t.Fatal("must not time out while PROCESSING within its cap")
+	}
+}
+
+func TestStuckProcessingBecomesReadyThenTimesOut(t *testing.T) {
+	m, clk := newTest()
+	ch, cancel, _ := m.Subscribe()
+	defer cancel()
+	s, _ := m.Start("hi")
+	_, _ = m.SetActivity(s.ID, Processing)
+	drain(ch)
+	clk.Advance(DefaultMaxProcessing)
+	m.Tick()
+	if cur := m.Current(); cur.Activity != Ready || cur.ID != s.ID {
+		t.Fatalf("stuck PROCESSING should drop to READY, got %+v", cur)
+	}
+	if evs := drain(ch); len(evs) == 0 || evs[0] != EvActivity {
+		t.Fatalf("expected session.activity, got %v", evs)
+	}
+	var sawReminder, ended bool
+	for i := 0; i < 12; i++ {
+		clk.Advance(time.Minute)
+		m.Tick()
+		for _, e := range drain(ch) {
+			sawReminder = sawReminder || e == EvReminder
+			ended = ended || e == EvEnded
+		}
+	}
+	if !sawReminder || !ended || m.Current().Activity != Idle {
+		t.Fatalf("idle rules must apply after the cap: reminder=%v ended=%v cur=%+v", sawReminder, ended, m.Current())
+	}
+}
+
+func TestSpeakingCapUsesClipHint(t *testing.T) {
+	m, clk := newTest()
+	s, _ := m.Start("hi")
+	// Without a hint: capped at MaxSpeaking.
+	_, _ = m.SetActivity(s.ID, Speaking)
+	clk.Advance(DefaultMaxSpeaking - time.Second)
+	m.Tick()
+	if m.Current().Activity != Speaking {
+		t.Fatal("SPEAKING must hold within MaxSpeaking")
+	}
+	clk.Advance(time.Second)
+	m.Tick()
+	if m.Current().Activity != Ready {
+		t.Fatalf("SPEAKING past MaxSpeaking should be READY, got %s", m.Current().Activity)
+	}
+	// A long clip extends the cap to the clip length.
+	_, _ = m.SetSpeaking(s.ID, 3*time.Minute)
+	clk.Advance(150 * time.Second)
+	m.Tick()
+	if m.Current().Activity != Speaking {
+		t.Fatal("SPEAKING must hold for the hinted clip length")
+	}
+	clk.Advance(31 * time.Second)
+	m.Tick()
+	if m.Current().Activity != Ready {
+		t.Fatalf("SPEAKING past the clip hint should be READY, got %s", m.Current().Activity)
+	}
+	// A short clip hint never lowers the cap below MaxSpeaking.
+	_, _ = m.SetSpeaking(s.ID, 5*time.Second)
+	clk.Advance(time.Minute)
+	m.Tick()
+	if m.Current().Activity != Speaking {
+		t.Fatal("short clip hint must not lower the cap below MaxSpeaking")
+	}
+}
+
+func TestForceReady(t *testing.T) {
+	m, clk := newTest()
+	s, _ := m.Start("hi")
+	_, _ = m.SetActivity(s.ID, Processing)
+	before := m.Current().LastActiveAt
+	clk.Advance(5 * time.Second)
+	if _, err := m.ForceReady("other"); !errors.Is(err, ErrWrongSession) {
+		t.Fatalf("want ErrWrongSession, got %v", err)
+	}
+	cur, err := m.ForceReady(s.ID)
+	if err != nil || cur.Activity != Ready {
+		t.Fatalf("ForceReady: %+v %v", cur, err)
+	}
+	if !cur.LastActiveAt.Equal(before) {
+		t.Fatal("ForceReady must not reset the idle clock")
+	}
+}
+
+func TestStartFreshEndsAbandonedSession(t *testing.T) {
+	m, _ := newTest()
+	var ended []EndReason
+	m.OnEnd(func(_ string, r EndReason) { ended = append(ended, r) })
+	old, _ := m.Start("hi")
+	_, _ = m.SetActivity(old.ID, Speaking)
+	cur, err := m.StartFresh("hi")
+	if err != nil || cur.ID == "" || cur.ID == old.ID || cur.Activity != Ready {
+		t.Fatalf("StartFresh: %+v %v", cur, err)
+	}
+	if len(ended) != 1 || ended[0] != EndAbandoned {
+		t.Fatalf("old session must end with EndAbandoned, got %v", ended)
+	}
+	if EndAbandoned.Wire() != "inactivity_timeout" || EndCitizen.Wire() != "citizen_ended" {
+		t.Fatal("Wire mapping")
+	}
+	// With no open session it just starts one.
+	m2, _ := newTest()
+	if s, err := m2.StartFresh("hi"); err != nil || s.ID == "" {
+		t.Fatalf("StartFresh on idle: %+v %v", s, err)
 	}
 }
 

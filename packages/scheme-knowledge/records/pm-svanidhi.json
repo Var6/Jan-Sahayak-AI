@@ -1,0 +1,156 @@
+{
+  "id": "pm-svanidhi",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "पीएम स्ट्रीट वेंडर्स आत्मनिर्भर निधि (पीएम स्वनिधि)",
+    "en": "PM Street Vendor's AtmaNirbhar Nidhi (PM SVANidhi)"
+  },
+  "aliases": [
+    "पीएम स्वनिधि",
+    "स्वनिधि",
+    "रेहड़ी पटरी लोन",
+    "ठेला लोन",
+    "street vendor loan",
+    "svanidhi",
+    "pm svanidhi",
+    "thela wala loan",
+    "फेरी वाले का लोन"
+  ],
+  "state": "",
+  "department": {
+    "hi": "आवासन एवं शहरी कार्य मंत्रालय, भारत सरकार",
+    "en": "Ministry of Housing and Urban Affairs, Government of India"
+  },
+  "category": "loan",
+  "keywords": [
+    "रेहड़ी",
+    "ठेला",
+    "फेरीवाला",
+    "सब्ज़ी",
+    "लोन",
+    "street vendor",
+    "hawker",
+    "working capital",
+    "loan"
+  ],
+  "summary": {
+    "hi": "पीएम स्वनिधि शहरों और कस्बों में रेहड़ी-पटरी/ठेले पर सामान बेचने वालों को बिना गिरवी के कार्यशील पूँजी (वर्किंग कैपिटल) ऋण देती है; समय पर चुकाने पर ब्याज सब्सिडी और अगली बार ज़्यादा ऋण, और डिजिटल लेन-देन पर कैशबैक मिलता है।",
+    "en": "PM SVANidhi gives collateral-free working capital loans to street vendors in cities and towns, with interest subsidy and a higher next loan on timely repayment, and cashback on digital transactions."
+  },
+  "eligibility": [
+    {
+      "hi": "शहरी क्षेत्रों में सड़क, फुटपाथ आदि पर सामान बेचने या सेवा देने वाले स्ट्रीट वेंडर, जिनमें आसपास के अर्ध-शहरी/ग्रामीण इलाकों से आकर शहर में बेचने वाले भी शामिल हैं।",
+      "en": "Street vendors selling goods or offering services on streets, footpaths etc. in urban areas, including vendors from surrounding peri-urban/rural areas vending in the city."
+    },
+    {
+      "hi": "जनगणना कस्बों (Census Towns) के वेंडर भी अब पात्र हैं।",
+      "en": "Vendors from Census Towns are now also eligible."
+    },
+    {
+      "hi": "जिनके पास वेंडिंग प्रमाण पत्र/पहचान पत्र नहीं है, वे शहरी स्थानीय निकाय (ULB) से सिफ़ारिश पत्र (LoR) लेकर आवेदन कर सकते हैं।",
+      "en": "Vendors without a Certificate of Vending/ID can apply after getting a Letter of Recommendation (LoR) from the Urban Local Body."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "बिना गिरवी (कोलैटरल) के कार्यशील पूँजी ऋण। (राशि की सीमा की पुष्टि होनी बाकी है।)",
+      "en": "Collateral-free working capital loan. (Loan limits pending confirmation.)"
+    },
+    {
+      "hi": "समय पर या जल्दी चुकाने पर ब्याज सब्सिडी सीधे खाते में, और अगली किस्त में ज़्यादा ऋण की पात्रता।",
+      "en": "Interest subsidy credited to the account on timely/early repayment, and eligibility for a higher loan in the next cycle."
+    },
+    {
+      "hi": "डिजिटल लेन-देन पर मासिक कैशबैक।",
+      "en": "Monthly cashback on digital transactions."
+    },
+    {
+      "hi": "दूसरी किस्त चुका चुके वेंडरों के लिए पीएम स्वनिधि क्रेडिट कार्ड की सुविधा।",
+      "en": "PM SVANidhi Credit Card facility for vendors who have repaid the second tranche."
+    }
+  ],
+  "questions": [
+    {
+      "id": "is_street_vendor",
+      "ask": {
+        "hi": "क्या आप शहर या कस्बे में ठेला, रेहड़ी, फुटपाथ या घूम-घूमकर सामान बेचते हैं या सेवा देते हैं?",
+        "en": "Do you sell goods or offer services from a cart, stall, footpath or by moving around in a city or town?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "वेंडिंग प्रमाण पत्र / पहचान पत्र, या शहरी निकाय का सिफ़ारिश पत्र (LoR)",
+        "en": "Certificate of Vending / ID card, or Letter of Recommendation (LoR) from the Urban Local Body"
+      }
+    },
+    {
+      "name": {
+        "hi": "आधार कार्ड",
+        "en": "Aadhaar card"
+      }
+    },
+    {
+      "name": {
+        "hi": "वोटर पहचान पत्र",
+        "en": "Voter ID card"
+      }
+    }
+  ],
+  "optional_docs": [
+    {
+      "name": {
+        "hi": "ड्राइविंग लाइसेंस / मनरेगा कार्ड / पैन कार्ड (अतिरिक्त KYC)",
+        "en": "Driving licence / MGNREGA card / PAN card (additional KYC)"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "pmsvanidhi.mohua.gov.in पोर्टल या मोबाइल ऐप से ऋण के लिए आवेदन करें; बैंकिंग करेस्पॉन्डेंट / MFI एजेंट आवेदन भरने और कागज़ अपलोड करने में मदद कर सकते हैं।",
+      "en": "Apply for the loan on the pmsvanidhi.mohua.gov.in portal or mobile app; Banking Correspondents / MFI agents can help fill the application and upload documents."
+    },
+    {
+      "hi": "सर्वे में नाम नहीं है तो शहरी निकाय से LoR के लिए सादे कागज़ पर आवेदन देकर स्थानीय जाँच कराएँ।",
+      "en": "If you are not in the survey list, apply to the Urban Local Body on plain paper for a local enquiry and LoR."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: pmsvanidhi.mohua.gov.in",
+      "en": "Online: pmsvanidhi.mohua.gov.in"
+    },
+    {
+      "hi": "नगर निकाय (नगर निगम / नगर परिषद / नगर पंचायत) कार्यालय",
+      "en": "Urban Local Body office (municipal corporation / council / nagar panchayat)"
+    },
+    {
+      "hi": "बैंक / बैंकिंग करेस्पॉन्डेंट",
+      "en": "Bank / Banking Correspondent"
+    }
+  ],
+  "official_url": "https://pmsvanidhi.mohua.gov.in/",
+  "sources": [
+    {
+      "url": "https://pmsvanidhi.mohua.gov.in/",
+      "title": "PM SVANidhi portal — home page",
+      "accessed_on": "2026-11-09",
+      "excerpt": "PM SVANidhi Portal is live with enhanced loan amount limits. Vendors from Census Towns are also now eligible to avail loans and other benefits under the Scheme || PM SVANidhi Credit Card facility is now available for Second tranche repaid Street Vendors"
+    },
+    {
+      "url": "https://pmsvanidhi.mohua.gov.in/Default/ViewFile/?id=FAQEng.pdf&path=MiscFiles",
+      "title": "PM SVANidhi — Frequently Asked Questions (English)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Street vendors/ hawkers vending in urban areas ... including the vendors of surrounding peri-urban and rural areas. ... What are the KYC documents required in addition to CoV/ ID / LoR? I. Aadhaar Card* II. Voter Identity Card* III. Driving License IV. MNREGA Card V. PAN Card. *Mandatory ... No collateral security is required."
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. AMOUNTS OMITTED ON PURPOSE: the FAQ PDF is the 2020 version (initial loan up to ₹10,000, 7% interest subsidy, cashback ₹50–100, scheme tenure to March 2022), but the portal now says 'enhanced loan amount limits' without stating them. Confirm current tranche amounts, subsidy rate and scheme period from the current guideline before adding. The FAQ's eligibility cut-off ('vending as on or before March 24, 2020') is probably obsolete — not used. KYC docs (Aadhaar and Voter ID mandatory) are from the 2020 FAQ — confirm. Grievance contact in the FAQ is a named officer — not used."
+  }
+}

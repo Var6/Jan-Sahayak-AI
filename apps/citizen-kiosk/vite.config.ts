@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { deviceApiMock } from "./mock/deviceApiMock";
+import { deviceApiMock } from "./mock/deviceApiMock.ts";
 
 /** Device agent local API (docs/API_DOCUMENTATION.md §1). */
 const AGENT = "http://127.0.0.1:8730";

@@ -10,7 +10,7 @@
 
 import workletUrl from "./capture-worklet.js?url";
 import { EnergyVad, VAD_DEFAULTS, type VadEnd, type VadOptions } from "./vad";
-import { Downsampler, TARGET_RATE, floatToInt16, wavBlob } from "./wav";
+import { Downsampler, floatToInt16, TARGET_RATE, wavBlob } from "./wav";
 
 export type RecordEnd = VadEnd | "stopped";
 
@@ -91,6 +91,9 @@ export class CaptureBuffer {
   }
 }
 
+/** Extra time beyond maxMs for mic setup before giving up. */
+const SETUP_SLACK_MS = 5_000;
+
 interface Active {
   finish: (end: RecordEnd) => void;
   fail: (err: MicError) => void;
@@ -118,6 +121,10 @@ export class MicRecorder implements Recorder {
       resolveFn = res;
       rejectFn = rej;
     });
+    // `done` may settle (abort) while setup is still awaiting below, before
+    // it is returned to the caller: mark it handled to avoid a spurious
+    // unhandled-rejection report. The caller still receives the rejection.
+    done.catch(() => undefined);
 
     let stream: MediaStream | null = null;
     let ctx: AudioContext | null = null;
@@ -177,6 +184,14 @@ export class MicRecorder implements Recorder {
       if (end) finish(end);
     };
 
+    const maxMs = this.vadOpts.maxMs ?? VAD_DEFAULTS.maxMs;
+    // Safety net covering setup (permission, AudioContext, worklet load) and
+    // capture: nothing here may hang the conversation.
+    guard = setTimeout(() => {
+      if (cap) finish("max_length");
+      else fail(new MicError("failed", "microphone setup timed out"));
+    }, maxMs + SETUP_SLACK_MS);
+
     try {
       try {
         stream = await md.getUserMedia({
@@ -231,10 +246,6 @@ export class MicRecorder implements Recorder {
       if (finished) throw new MicError("aborted");
       src.connect(node);
       node.connect(sink);
-
-      const maxMs = this.vadOpts.maxMs ?? VAD_DEFAULTS.maxMs;
-      // Safety net if the audio graph stalls and no chunks arrive.
-      guard = setTimeout(() => finish("max_length"), maxMs + 2_000);
     } catch (e) {
       // If already aborted, a stream obtained meanwhile must still be released.
       if (finished) release();

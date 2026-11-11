@@ -182,7 +182,7 @@ func (w *Whisper) do(ctx context.Context, wav []byte, lang string) (Transcript, 
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	resp, err := w.http.Do(req)
 	if err != nil {
-		return Transcript{}, fmt.Errorf("%w: %v", ErrUnavailable, err)
+		return Transcript{}, fmt.Errorf("%w: %w", ErrUnavailable, err) // %w: keeps context.Canceled visible to the gate
 	}
 	defer resp.Body.Close()
 	rb, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
@@ -266,7 +266,7 @@ func getOK(ctx context.Context, c *http.Client, url string) error {
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrUnavailable, err)
+		return fmt.Errorf("%w: %w", ErrUnavailable, err)
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))

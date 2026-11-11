@@ -15,6 +15,9 @@ type LlamaConfig struct {
 	BaseURL   string // e.g. http://127.0.0.1:8742
 	Timeout   time.Duration
 	MaxTokens int // hard cap regardless of request
+	// APIKey is sent as a bearer token (llama-server --api-key-file). Empty
+	// means no Authorization header.
+	APIKey string
 }
 
 // Llama talks to llama.cpp's llama-server (OpenAI-compatible endpoint).
@@ -100,9 +103,10 @@ func (l *Llama) do(ctx context.Context, b []byte) (string, error) {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	l.auth(req)
 	resp, err := l.http.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrUnavailable, err)
+		return "", fmt.Errorf("%w: %w", ErrUnavailable, err) // %w: keeps context.Canceled visible to the gate
 	}
 	defer resp.Body.Close()
 	rb, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
@@ -125,10 +129,32 @@ func (l *Llama) do(ctx context.Context, b []byte) (string, error) {
 	return cr.Choices[0].Message.Content, nil
 }
 
-// Health checks llama-server's /health (returns 503 while loading).
+func (l *Llama) auth(req *http.Request) {
+	if l.cfg.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+l.cfg.APIKey)
+	}
+}
+
+// Health checks llama-server's /health (returns 503 while loading). The
+// health endpoint is public in llama-server, but the key is sent anyway so a
+// key mismatch shows up as a failing completion, not a silent one.
 func (l *Llama) Health(ctx context.Context) error {
 	if l.g.open() {
 		return ErrUnavailable
 	}
-	return getOK(ctx, l.http, l.cfg.BaseURL+"/health")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, l.cfg.BaseURL+"/health", nil)
+	if err != nil {
+		return err
+	}
+	l.auth(req)
+	resp, err := l.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrUnavailable, err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: HTTP %d", ErrUnavailable, resp.StatusCode)
+	}
+	return nil
 }

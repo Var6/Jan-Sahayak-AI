@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "schema": "TEST FIXTURE ONLY - invented helplines with 000- numbers; not real services. Same shape as packages/scheme-knowledge/helplines.json (use_for tags, flat status / verified_by / verified_at / review_due).",
+  "helplines": [
+    {"id": "test-mental-health", "name": {"hi": "टेस्ट मानसिक स्वास्थ्य हेल्पलाइन", "en": "Test Mental Health Helpline"}, "number": "000-222-0001", "use_for": ["crisis", "suicide", "mental_health"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"},
+    {"id": "test-women", "name": {"hi": "टेस्ट महिला हेल्पलाइन", "en": "Test Women Helpline"}, "number": "000-222-0002", "use_for": ["crisis", "women", "domestic_violence"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"},
+    {"id": "test-child", "name": {"hi": "टेस्ट बाल हेल्पलाइन", "en": "Test Child Helpline"}, "number": "000-222-0003", "use_for": ["crisis", "child"],
+     "verification": {"status": "VERIFIED", "verified_by": "reviewer:test-fixture", "verified_at": "2026-10-01", "review_due": "2099-12-31"}},
+    {"id": "test-gas", "name": {"hi": "टेस्ट गैस रिसाव हेल्पलाइन", "en": "Test Gas Leak Helpline"}, "number": "000-222-0004", "use_for": ["emergency"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"},
+    {"id": "test-unverified", "name": {"hi": "टेस्ट असत्यापित", "en": "Test Unverified"}, "number": "000-222-0009", "use_for": ["suicide"],
+     "status": "NEEDS_REVIEW"},
+    {"id": "test-overdue", "name": {"hi": "टेस्ट पुरानी", "en": "Test Overdue"}, "number": "000-222-0008", "use_for": ["suicide"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2019-01-01T00:00:00Z", "review_due": "2020-01-01"},
+    {"id": "test-no-reviewer", "name": {"hi": "टेस्ट बिना समीक्षक", "en": "Test No Reviewer"}, "number": "000-222-0007", "use_for": ["suicide"],
+     "status": "VERIFIED", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"},
+    {"id": "test-machine-reviewer", "name": {"hi": "टेस्ट मशीन समीक्षक", "en": "Test Machine Reviewer"}, "number": "000-222-0006", "use_for": ["suicide"],
+     "status": "VERIFIED", "verified_by": "GPT-4o auto-check", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"},
+    {"id": "test-no-review-due", "name": {"hi": "टेस्ट बिना समीक्षा तिथि", "en": "Test No Review Due"}, "number": "000-222-0005", "use_for": ["suicide"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z"},
+    {"id": "test-bad-number", "name": {"hi": "टेस्ट गलत नंबर", "en": "Test Bad Number"}, "number": "call us", "use_for": ["suicide"],
+     "status": "VERIFIED", "verified_by": "Test Fixture Reviewer", "verified_at": "2026-10-01T00:00:00Z", "review_due": "2099-12-31"}
+  ]
+}

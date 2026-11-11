@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -31,6 +32,17 @@ type Config struct {
 	MaxConcurrentDevice int
 	// RequestTimeout bounds database work per request.
 	RequestTimeout time.Duration
+	// LoginBaseDelay / LoginMaxDelay shape the progressive login delay
+	// (login_throttle.go). Defaults 500 ms and 8 s; LoginMaxDelay must stay
+	// well below RequestTimeout.
+	LoginBaseDelay time.Duration
+	LoginMaxDelay  time.Duration
+	// TrustProxy makes login throttling key on the X-Forwarded-For address
+	// set by a reverse proxy on the same host (loopback peers only).
+	TrustProxy bool
+	// AdminUIDir, if set, is a directory of static files (the admin
+	// dashboard's static export) served under /admin/.
+	AdminUIDir string
 }
 
 func (c *Config) defaults() {
@@ -49,36 +61,63 @@ func (c *Config) defaults() {
 	if c.RequestTimeout <= 0 {
 		c.RequestTimeout = 15 * time.Second
 	}
+	if c.LoginBaseDelay <= 0 {
+		c.LoginBaseDelay = 500 * time.Millisecond
+	}
+	if c.LoginMaxDelay <= 0 {
+		c.LoginMaxDelay = 8 * time.Second
+	}
+	if c.LoginMaxDelay > c.RequestTimeout/2 {
+		c.LoginMaxDelay = c.RequestTimeout / 2
+	}
 }
 
 // Server holds dependencies.
 type Server struct {
 	cfg     Config
 	pool    *pgxpool.Pool
-	keys    *keys.Keyring
+	keys    atomic.Pointer[keys.Keyring] // swappable for key rotation
 	log     *slog.Logger
 	now     func() time.Time
 	devSem  chan struct{}
+	logins  *loginThrottle
 	handler http.Handler
 
 	// beforeCommit, if set (tests only), runs inside the ingest transaction
 	// just before COMMIT; returning an error aborts the transaction.
-	beforeCommit func(ctx context.Context, tx pgx.Tx) error
+	beforeCommit atomic.Pointer[hookFunc]
+	// afterDeviceAuth, if set (tests only), runs after a device request is
+	// authenticated and before its database work starts.
+	afterDeviceAuth atomic.Pointer[func()]
 }
 
+type hookFunc func(ctx context.Context, tx pgx.Tx) error
+
 // New creates a server.
-func New(cfg Config, pool *pgxpool.Pool, kr *keys.Keyring, log *slog.Logger) *Server {
+func New(cfg Config, pool *pgxpool.Pool, kr *keys.Keyring, log *slog.Logger) (*Server, error) {
 	cfg.defaults()
-	s := &Server{cfg: cfg, pool: pool, keys: kr, log: log, now: time.Now,
+	s := &Server{cfg: cfg, pool: pool, log: log, now: time.Now,
 		devSem: make(chan struct{}, cfg.MaxConcurrentDevice)}
-	s.handler = s.routes()
-	return s
+	s.logins = newLoginThrottle(func() time.Time { return s.now() }, cfg.LoginBaseDelay, cfg.LoginMaxDelay)
+	s.keys.Store(kr)
+	var ui http.Handler
+	if cfg.AdminUIDir != "" {
+		var err error
+		if ui, err = newStaticUI(cfg.AdminUIDir); err != nil {
+			return nil, err
+		}
+	}
+	s.handler = s.routes(ui)
+	return s, nil
 }
+
+// SetKeyring atomically replaces the signing keyring (key rotation).
+func (s *Server) SetKeyring(kr *keys.Keyring) { s.keys.Store(kr) }
 
 // Handler returns the root handler.
 func (s *Server) Handler() http.Handler { return s.handler }
 
-func (s *Server) routes() http.Handler {
+func (s *Server) routes(ui http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -105,6 +144,7 @@ func (s *Server) routes() http.Handler {
 	admin.Handle("GET /v1/admin/schemes/{id}/versions/{version}", s.require(roleAny, s.handleGetSchemeVersion))
 	admin.Handle("PUT /v1/admin/schemes/{id}", s.require(roleSchemeEditor, s.handlePutScheme))
 	admin.Handle("POST /v1/admin/schemes/{id}/verify", s.require(roleSchemeReviewer, s.handleVerifyScheme))
+	admin.Handle("POST /v1/admin/schemes/{id}/withdraw", s.require(roleSchemeReviewer, s.handleWithdrawScheme))
 	admin.Handle("GET /v1/admin/bundles", s.require(roleAny, s.handleListBundles))
 	admin.Handle("POST /v1/admin/bundles", s.require(roleSchemeReviewer, s.handlePublishBundle))
 	admin.Handle("GET /v1/admin/audit", s.require(roleAuditor, s.handleAudit))
@@ -116,6 +156,10 @@ func (s *Server) routes() http.Handler {
 		writeError(w, http.StatusForbidden, "csrf", "cross-origin request refused")
 	}))
 	mux.Handle("/v1/admin/", noStore(csrf.Handler(admin)))
+	if ui != nil {
+		mux.Handle("GET /admin/", ui)
+		mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusMovedPermanently))
+	}
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "no such endpoint")

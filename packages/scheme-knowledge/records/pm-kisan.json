@@ -1,0 +1,161 @@
+{
+  "id": "pm-kisan",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "प्रधानमंत्री किसान सम्मान निधि (पीएम-किसान)",
+    "en": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)"
+  },
+  "aliases": [
+    "पीएम किसान",
+    "किसान सम्मान निधि",
+    "किसान निधि",
+    "PM KISAN",
+    "pm kisan",
+    "kisan samman nidhi",
+    "6000 wali yojana",
+    "किसान का पैसा",
+    "किसान की किस्त"
+  ],
+  "state": "",
+  "department": {
+    "hi": "कृषि एवं किसान कल्याण विभाग, भारत सरकार",
+    "en": "Department of Agriculture and Farmers Welfare, Government of India"
+  },
+  "category": "farmer",
+  "keywords": [
+    "किसान",
+    "खेती",
+    "किस्त",
+    "पैसा नहीं आया",
+    "ईकेवाईसी",
+    "farmer",
+    "installment",
+    "eKYC",
+    "land record"
+  ],
+  "summary": {
+    "hi": "पीएम-किसान में ज़मीन के रिकॉर्ड में दर्ज किसान परिवारों को साल में ₹6000 तीन बराबर किस्तों में, हर चार महीने पर, सीधे बैंक खाते में मिलते हैं। पंजीकृत किसानों के लिए eKYC अनिवार्य है।",
+    "en": "PM-KISAN pays landholding farmer families recorded in land records ₹6000 a year in three equal instalments every four months, directly to the bank account. eKYC is mandatory for registered farmers."
+  },
+  "eligibility": [
+    {
+      "hi": "ऐसा किसान परिवार (पति, पत्नी और नाबालिग बच्चे) जिसके नाम राज्य के भूमि रिकॉर्ड में खेती की ज़मीन दर्ज है।",
+      "en": "A farmer family (husband, wife and minor children) whose cultivable land is recorded in the State's land records."
+    },
+    {
+      "hi": "लाभ के लिए आधार अनिवार्य है और भुगतान आधार से जुड़े डेटाबेस के आधार पर होता है।",
+      "en": "Aadhaar is compulsory for the benefit and payment is made on the basis of an Aadhaar-seeded database."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "हर साल ₹6000 प्रति परिवार, तीन बराबर किस्तों में, हर चार महीने पर।",
+      "en": "₹6000 per year per family, in three equal instalments every four months."
+    }
+  ],
+  "questions": [
+    {
+      "id": "land_in_own_name",
+      "ask": {
+        "hi": "क्या खेती की ज़मीन आपके या आपके परिवार (पति/पत्नी/नाबालिग बच्चे) के नाम ज़मीन के रिकॉर्ड में दर्ज है?",
+        "en": "Is cultivable land recorded in your or your family's (spouse/minor children) name in the land records?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "excluded_category",
+      "ask": {
+        "hi": "क्या परिवार में कोई सरकारी कर्मचारी (चतुर्थ वर्ग को छोड़कर), आयकर देने वाला, या डॉक्टर/इंजीनियर/वकील जैसे पंजीकृत पेशेवर है?",
+        "en": "Is anyone in the family a government employee (other than Group D/MTS), an income-tax payer, or a registered professional like a doctor, engineer or lawyer?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "आधार नंबर",
+        "en": "Aadhaar number"
+      }
+    },
+    {
+      "name": {
+        "hi": "बैंक खाता नंबर",
+        "en": "Bank account number"
+      }
+    },
+    {
+      "name": {
+        "hi": "ज़मीन का रिकॉर्ड (जिसमें आपका नाम दर्ज हो)",
+        "en": "Land record showing your name"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "पात्र किसान परिवारों का डेटाबेस राज्य सरकार बनाती है; गाँव स्तर पर सूची प्रकाशित होती है और छूटे हुए पात्र किसान अपनी बात रख सकते हैं।",
+      "en": "The State Government prepares the database of eligible farmer families; lists are published at village level and eligible farmers left out can represent their case."
+    },
+    {
+      "hi": "पंजीकृत किसानों को eKYC कराना अनिवार्य है — बायोमेट्रिक eKYC CSC केंद्र, पीएम-किसान मोबाइल ऐप या राज्य द्वारा अधिकृत लॉगिन से हो सकता है।",
+      "en": "Registered farmers must complete eKYC — biometric eKYC is available through CSC centres, the PM-KISAN mobile app and State-authorised logins."
+    },
+    {
+      "hi": "किस्त न आए तो pmkisan.gov.in पर अपना स्टेटस देखें, या अपने इलाके के पीएम-किसान संपर्क अधिकारी (Point of Contact) से मिलें / हेल्पडेस्क पर शिकायत दर्ज करें।",
+      "en": "If an instalment has not arrived, check your status on pmkisan.gov.in, or contact your area PM-KISAN Point of Contact / register a query on the helpdesk."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: pmkisan.gov.in",
+      "en": "Online: pmkisan.gov.in"
+    },
+    {
+      "hi": "CSC (जन सेवा केंद्र) — eKYC के लिए",
+      "en": "CSC (Common Service Centre) — for eKYC"
+    },
+    {
+      "hi": "प्रखंड / ज़िला कृषि कार्यालय (पीएम-किसान संपर्क अधिकारी)",
+      "en": "Block / district agriculture office (PM-KISAN point of contact)"
+    }
+  ],
+  "official_url": "https://pmkisan.gov.in/",
+  "exceptions": [
+    {
+      "hi": "लाभ नहीं मिलेगा: संस्थागत भूमिधारक; परिवार में कोई संवैधानिक पद धारक, वर्तमान/पूर्व मंत्री, सांसद/विधायक, महापौर या ज़िला पंचायत अध्यक्ष; केंद्र/राज्य सरकार के सेवारत या सेवानिवृत्त अधिकारी-कर्मचारी (चतुर्थ वर्ग/MTS को छोड़कर); ₹10,000 या ज़्यादा मासिक पेंशन वाले पेंशनभोगी (चतुर्थ वर्ग को छोड़कर); पिछले साल आयकर देने वाले; पंजीकृत डॉक्टर, इंजीनियर, वकील, CA, आर्किटेक्ट।",
+      "en": "Excluded: institutional landholders; families with a constitutional post holder, present/former minister, MP/MLA, mayor or district panchayat chairperson; serving or retired Central/State government officers and employees (except MTS/Class IV/Group D); pensioners with monthly pension of ₹10,000 or more (except Group D); income-tax payers in the last assessment year; registered practising doctors, engineers, lawyers, CAs and architects."
+    },
+    {
+      "hi": "गलत स्व-घोषणा देने पर दी गई राशि की वसूली और कानूनी कार्रवाई हो सकती है।",
+      "en": "An incorrect self-declaration can lead to recovery of the money paid and legal action."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://pmkisan.gov.in/Documents/OPERATIONAL%20GUIDELINES.pdf",
+      "title": "PM-KISAN Operational Guidelines",
+      "accessed_on": "2026-11-09",
+      "excerpt": "Landholder Farmer families with total cultivable holding upto 2 hectares shall be provided a benefit of Rs.6000 per annum per family payable in three equal installments, every four months. ... A Small and Marginal landholder farmer family is defined as \"a family comprising of husband, wife and minor children who collectively own cultivable land upto 2 hectare as per land records of the concerned State/UT\". ... d) All superannuated/retired pensioners whose monthly pension is Rs.10,000/-or more(Excluding Multi Tasking Staff / Class IV/Group D employees)"
+    },
+    {
+      "url": "https://pmkisan.gov.in/Documents/Amendment%20to%20OG-converted.pdf",
+      "title": "Amendment to Para 8.1 of PM-KISAN Operational Guidelines (as on 11.03.2019)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "It is to be ensured that all such beneficiaries shall have to be compulsorily enrolled under Aadhaar, since payment of third installment onwards shall be done only on the basis of Aadhaar seeded data base."
+    },
+    {
+      "url": "https://pmkisan.gov.in/",
+      "title": "PM-KISAN portal — home page",
+      "accessed_on": "2026-11-09",
+      "excerpt": "eKYC is MANDATORY for PMKISAN Registered Farmers. Biometric-based eKYC option is now available for CSC VLE Logins, PM-KISAN Mobile Application and State Authorized User Logins."
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. IMPORTANT: the Operational Guidelines and FAQ PDFs on pmkisan.gov.in are the original 2019 versions with a '2 hectare' ceiling. The ceiling was reportedly removed in 2019 (scheme extended to all landholder farmer families) but no official document confirming that was fetched — the record therefore deliberately does NOT mention a land-size limit. Reviewer must confirm current eligibility (incl. the land-record cut-off date, originally 01.02.2019) from current guidelines. Exclusion list is from the 2019 guidelines. No official helpline number was printed on the pages fetched (Contacts page lists officers only; Helpdesk is a query form) — helpline omitted. Mandatory docs are drafted from the guideline's database fields (Aadhaar, bank account) plus land record — confirm the self-registration document list. Review fix 2026-11-09 (correctness finding 4): re-fetched the Operational Guidelines; the ₹10,000 pension exclusion is now quoted from para 2.4.1(d) (2019 text — confirm it is still current)."
+  }
+}

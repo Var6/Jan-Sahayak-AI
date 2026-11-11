@@ -100,6 +100,74 @@ production must never present unverified facts. The flag is refused at
 startup unless the profile starts with `dev`, and every such answer carries
 a "not yet verified" banner. **Status:** accepted.
 
+### D-016 · 2026-11-09 · Only per-event server verdicts consume sync attempts
+**Why:** review showed a kiosk offline ~10 days stranded every event in FAILED
+forever. Network/HTTP-level failures now never count; FAILED (not CONFLICT)
+events are auto-requeued every 24 h; operators can requeue manually.
+**Status:** accepted, being implemented (fix workflow).
+
+### D-017 · 2026-11-09 · Non-corruption DB open errors fail startup, never quarantine
+**Why:** a permissions/I/O error was treated as corruption and the live DB was
+moved aside. Only `quick_check` failures, SQLITE_CORRUPT or SQLITE_NOTADB
+quarantine; anything else fails loudly so systemd retries and an operator
+sees it. **Status:** accepted, being implemented.
+
+### D-018 · 2026-11-09 · LLM rephrase validator is an allowlist; rephrase off on pi5 by default
+**Why:** the blocklist validator accepted invented number words, deadlines,
+eligibility verdicts, guarantees, documents and offices. The allowlist only
+permits content tokens already present in the verified source. Rephrasing is
+disabled on production profiles until field validation; LLM classification
+(fixed enum, schema-constrained) stays on. **Status:** accepted.
+
+### D-019 · 2026-11-09 · Crisis detection precedes every other gate
+**Why:** low STT confidence and the 500-char cap were hiding crisis input.
+Crisis matching now runs on the raw input first; fuzzy matching is disabled
+for short romanised tokens (`pati` ≠ `jati`). The phrase corpus must be
+reviewed by a counsellor before pilot. **Status:** accepted.
+
+### D-020 · 2026-11-09 · 112 is a hard-coded emergency fallback
+**Why:** India's national emergency number must be shown even if the
+helpline file is missing or unverified. Recorded exception to "facts only from
+records"; needs Janman sign-off. **Status:** proposed.
+
+### D-021 · 2026-11-09 · Self-healing process policy
+**Why:** systemd's default start limit left units dead after ~30 s of boot
+failures. Units use `StartLimitIntervalSec=0` + `RestartSec=5`; missing GPIO
+degrades instead of failing; a speech worker whose inference exceeds 3× its
+timeout exits so systemd restarts it. **Status:** accepted.
+
+### D-022 · 2026-11-09 · Privacy hardening of analytics
+**Why:** small counts by device/day could single out a visit. Device rounds
+session timestamps to the minute; viewer-role analytics suppress cells < 5;
+health details sent centrally are fixed reason codes. Threshold to be
+confirmed with Janman/legal (DPDP). **Status:** accepted (threshold provisional).
+
+### D-023 · 2026-11-09 · Central DB owner and runtime roles are separate
+**Why:** the app role could disable the audit-log triggers it owned. Runtime
+role gets no ownership and only SELECT/INSERT on append-only tables.
+**Status:** accepted, being implemented.
+
+### D-024 · 2026-11-09 · Only `session.ended` and `dialogue.turn` analytics events
+**Why:** the central API stores only event types with strict schemas (no free
+text can slip in); a separate `session.started` event added nothing
+(`session.ended` carries the start time). New event types require a server
+update first. **Status:** accepted.
+
+### D-025 · 2026-11-09 · Release integrity: SHA256SUMS + optional SSH signature
+**Why:** the Pi installer copied binaries, libraries and models unchecked.
+Releases now ship `SHA256SUMS`; `verify-release.sh` (installed copy preferred
+over the bundled one) refuses mismatches and unlisted files, and requires an
+`ssh-keygen -Y` signature when an allowed-signers file exists on the device.
+**Open:** who holds the release signing key and how the allowed-signers file
+is provisioned — needs a Janman decision. **Status:** implemented
+(integrity); signing pending.
+
+### D-026 · 2026-11-09 · llama-server requires an API key, no web UI
+**Why:** any local process (including the kiosk browser) could otherwise use
+the LLM directly. llama-server runs with `--api-key-file` and `--no-webui`;
+the key is handed to units via systemd `LoadCredential`; the agent sends it
+via `ai.LlamaConfig.APIKey`. **Status:** implemented (untested on Pi).
+
 ### D-015 · 2026-11-09 · Keep Go 1.26 (not 1.27)
 **Why:** 1.27's only relevant gain is a stdlib `uuid`; our own UUIDv7 is ~60
 lines and tested. Avoids a system toolchain change mid-project. **Status:**

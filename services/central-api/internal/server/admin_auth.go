@@ -14,11 +14,7 @@ import (
 	"github.com/janmanindia/jan-sahayak/services/central-api/internal/core"
 )
 
-const (
-	cookieName      = "js_admin"
-	maxFailedLogins = 10
-	lockoutDuration = 15 * time.Minute
-)
+const cookieName = "js_admin"
 
 // role requirements.
 type roleReq int
@@ -142,6 +138,10 @@ type loginReq struct {
 	Password string `json:"password"`
 }
 
+// handleLogin authenticates a staff user. Every credential failure (unknown
+// user, wrong password, disabled user) gets the same 401 after the same
+// work: a progressive throttle delay (login_throttle.go), one argon2
+// verification and one audit row. There is no hard lock.
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.cfg.RequestTimeout)
 	defer cancel()
@@ -149,35 +149,67 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if !decodeAdmin(w, r, &req) {
 		return
 	}
+	badCredentials := func() {
+		writeError(w, http.StatusUnauthorized, "bad_credentials", "invalid username or password")
+	}
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if len(username) > 40 || len(req.Password) > auth.MaxPasswordLen {
-		writeError(w, http.StatusUnauthorized, "bad_credentials", "invalid username or password")
+		badCredentials() // such a user cannot exist (users.username CHECK)
 		return
 	}
+	tk, ok := s.logins.admit(clientIP(r, s.cfg.TrustProxy), username)
+	if !ok {
+		w.Header().Set("Retry-After", "5")
+		writeError(w, http.StatusTooManyRequests, "throttled", "too many login attempts in progress; retry shortly")
+		return
+	}
+	defer tk.done()
+	if tk.delay > 0 {
+		t := time.NewTimer(tk.delay)
+		select {
+		case <-t.C:
+		case <-ctx.Done():
+			t.Stop()
+			return // client gone or timed out; nothing was checked
+		}
+	}
+	prio := auth.PriorityNormal
+	if tk.trusted {
+		prio = auth.PriorityTrusted
+	}
+	busy := func() {
+		w.Header().Set("Retry-After", "5")
+		writeError(w, http.StatusServiceUnavailable, "busy", "server busy, retry")
+	}
 	var (
-		uid, hash   string
-		disabled    bool
-		lockedUntil *time.Time
+		uid, hash string
+		disabled  bool
 	)
-	err := s.pool.QueryRow(ctx, `SELECT id, password_hash, disabled, locked_until FROM users WHERE username = $1`, username).
-		Scan(&uid, &hash, &disabled, &lockedUntil)
+	err := s.pool.QueryRow(ctx, `SELECT id, password_hash, disabled FROM users WHERE username = $1`, username).
+		Scan(&uid, &hash, &disabled)
 	if errors.Is(err, pgx.ErrNoRows) {
-		auth.VerifyDummy(ctx, req.Password) // equalise timing
-		writeError(w, http.StatusUnauthorized, "bad_credentials", "invalid username or password")
+		// Same work as a real user: argon2 through the same slots (busy is
+		// reported identically), then one audit row.
+		if err := auth.VerifyDummy(ctx, req.Password, prio); errors.Is(err, auth.ErrBusy) {
+			busy()
+			return
+		}
+		tk.failed()
+		if err := core.Audit(ctx, s.pool, core.Actor{Label: "anonymous"}, "admin.login_failed", "user", "",
+			map[string]any{"reason": "unknown_user"}); err != nil {
+			s.dbUnavailable(w, "login: record failure", err)
+			return
+		}
+		badCredentials()
 		return
 	}
 	if err != nil {
 		s.dbUnavailable(w, "login: lookup", err)
 		return
 	}
-	if lockedUntil != nil && lockedUntil.After(s.now()) {
-		writeError(w, http.StatusTooManyRequests, "locked", "too many failed attempts; try again later")
-		return
-	}
-	okPw, err := auth.VerifyPassword(ctx, hash, req.Password)
+	okPw, err := auth.VerifyPasswordPriority(ctx, hash, req.Password, prio)
 	if errors.Is(err, auth.ErrBusy) {
-		w.Header().Set("Retry-After", "5")
-		writeError(w, http.StatusServiceUnavailable, "busy", "server busy, retry")
+		busy()
 		return
 	}
 	if err != nil {
@@ -186,21 +218,27 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	actor := core.Actor{UserID: uid, Label: username}
 	if !okPw || disabled {
+		tk.failed()
 		err := core.InTx(ctx, s.pool, func(tx pgx.Tx) error {
-			if _, err := tx.Exec(ctx, `UPDATE users SET failed_logins = failed_logins + 1,
-				locked_until = CASE WHEN failed_logins + 1 >= $2 THEN now() + make_interval(secs => $3) ELSE locked_until END
-				WHERE id = $1`, uid, maxFailedLogins, lockoutDuration.Seconds()); err != nil {
+			// failed_logins is informational only (shown to admins); it no
+			// longer locks the account.
+			if _, err := tx.Exec(ctx, `UPDATE users SET failed_logins = failed_logins + 1 WHERE id = $1`, uid); err != nil {
 				return err
 			}
-			return core.Audit(ctx, tx, actor, "admin.login_failed", "user", uid, map[string]any{"disabled": disabled})
+			reason := "bad_password"
+			if okPw {
+				reason = "disabled"
+			}
+			return core.Audit(ctx, tx, actor, "admin.login_failed", "user", uid, map[string]any{"disabled": disabled, "reason": reason})
 		})
 		if err != nil {
 			s.dbUnavailable(w, "login: record failure", err)
 			return
 		}
-		writeError(w, http.StatusUnauthorized, "bad_credentials", "invalid username or password")
+		badCredentials()
 		return
 	}
+	tk.succeeded()
 	token, sum, err := auth.NewSessionToken()
 	if err != nil {
 		s.dbUnavailable(w, "login: token", err)

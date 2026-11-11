@@ -8,9 +8,17 @@
 //	-server-key    JS_SERVER_KEY     active Ed25519 signing key file (required)
 //	-verify-key    (repeatable)      retired public key files kept for verification
 //	-cookie-secure JS_COOKIE_SECURE  Secure flag on admin cookie (default true)
+//	-trust-proxy   JS_TRUST_PROXY    key login throttling on X-Forwarded-For from a
+//	                                 loopback reverse proxy (default false)
+//	-admin-ui-dir  JS_ADMIN_UI_DIR   static admin dashboard export served at /admin/
+//	-strict-db-role JS_STRICT_DB_ROLE refuse to start unless the database role is a
+//	                                 least-privilege runtime role (default false;
+//	                                 production sets true, see docs/DATABASE_DESIGN.md)
 //
 // The database must already be migrated (`central-admin migrate`); the
-// server refuses to start on a schema version it does not expect.
+// server refuses to start on a schema version it does not expect. TLS is
+// terminated by a reverse proxy (deployment/server/Caddyfile); the server
+// itself listens on loopback over plain HTTP.
 package main
 
 import (
@@ -55,10 +63,15 @@ func main() {
 
 func run(log *slog.Logger) error {
 	secureDefault, _ := strconv.ParseBool(env("JS_COOKIE_SECURE", "true"))
+	trustProxyDefault, _ := strconv.ParseBool(env("JS_TRUST_PROXY", "false"))
+	strictRoleDefault, _ := strconv.ParseBool(env("JS_STRICT_DB_ROLE", "false"))
 	addr := flag.String("addr", env("JS_ADDR", "127.0.0.1:8750"), "listen address")
 	dbURL := flag.String("database-url", env("JS_DATABASE_URL", ""), "PostgreSQL URL")
 	keyPath := flag.String("server-key", env("JS_SERVER_KEY", ""), "server signing key file")
 	cookieSecure := flag.Bool("cookie-secure", secureDefault, "set Secure on the admin session cookie")
+	trustProxy := flag.Bool("trust-proxy", trustProxyDefault, "trust X-Forwarded-For from a loopback reverse proxy")
+	uiDir := flag.String("admin-ui-dir", env("JS_ADMIN_UI_DIR", ""), "static admin dashboard directory served at /admin/")
+	strictRole := flag.Bool("strict-db-role", strictRoleDefault, "refuse to start with an over-privileged database role")
 	var verifyKeys multiFlag
 	flag.Var(&verifyKeys, "verify-key", "retired server public key file (repeatable)")
 	flag.Parse()
@@ -96,8 +109,22 @@ func run(log *slog.Logger) error {
 	if !*cookieSecure {
 		log.Warn("admin cookie Secure flag is OFF — use only for localhost development")
 	}
+	problems, err := db.CheckRuntimeRole(ctx, pool)
+	if err != nil {
+		return fmt.Errorf("check database role: %w", err)
+	}
+	if len(problems) > 0 {
+		if *strictRole {
+			return fmt.Errorf("database role is not a least-privilege runtime role: %s", strings.Join(problems, "; "))
+		}
+		log.Warn("database role can bypass append-only protections — use a separate runtime role in production",
+			"problems", problems)
+	}
 
-	srv := server.New(server.Config{CookieSecure: *cookieSecure}, pool, kr, log)
+	srv, err := server.New(server.Config{CookieSecure: *cookieSecure, TrustProxy: *trustProxy, AdminUIDir: *uiDir}, pool, kr, log)
+	if err != nil {
+		return err
+	}
 	hs := &http.Server{
 		Addr:              *addr,
 		Handler:           srv.Handler(),

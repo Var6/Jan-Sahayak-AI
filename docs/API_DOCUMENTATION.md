@@ -67,18 +67,63 @@ type HealthState = "HEALTHY" | "DEGRADED" | "UNAVAILABLE" | "RECOVERING" | "REQU
 | Method & path | Body | Response | Notes |
 |---|---|---|---|
 | `GET /api/v1/status` | — | `DeviceStatus` | Poll-free: UI also listens to SSE. |
-| `GET /api/v1/events` | — | `text/event-stream` | Events: `session` (`{type, session, end_reason?}` where type ∈ `session.started`, `session.activity`, `session.reminder`, `session.final_warning`, `session.ended`, `session.language`, `session.camera_consent`), `health` (`{overall, capabilities}`), `ping` every 15 s. |
+| `GET /api/v1/events` | — | `text/event-stream` | Events: `session` (`{type, session, end_reason?, reply?, audio_url?}` where type ∈ `session.started`, `session.activity`, `session.reminder`, `session.final_warning`, `session.ended`, `session.language`, `session.camera_consent`), `health` (`{overall, capabilities}`), `ping` every 15 s. At most `api.sse_max_clients` (4) streams; one slot is reserved for the kiosk page (a same-origin browser request, `Sec-Fetch-Site: same-origin`), other clients get 503 `unavailable` beyond the rest. When all slots are taken a kiosk stream evicts the oldest stream (old kiosk streams first). |
 | `POST /api/v1/session/start` | `{language?: Lang}` | `{session, reply: Reply, audio_url?}` | **Simulated button.** Enabled only when `hal.button = "sim"` (PC). On the Pi the GPIO button starts sessions and this returns 403 `button_disabled`. |
 | `POST /api/v1/session/{id}/listen` | — | `{session}` | Moves to `LISTENING`. The UI may open the mic only after this succeeds. |
-| `POST /api/v1/session/{id}/audio` | WAV body (`audio/wav`, 16 kHz mono 16-bit, ≤ 20 s) | `TurnResult` | Rejected unless the session is `LISTENING`. Audio is processed in memory and never written to disk. |
+| `POST /api/v1/session/{id}/audio` | WAV body (`audio/wav`, 16 kHz mono 16-bit, ≤ 20 s) | `TurnResult` | Rejected (409 `bad_state`) unless the session is `LISTENING` both before the upload and when the turn starts (checked again under the turn lock, so audio that overlapped another turn is discarded, never transcribed). Audio is processed in memory and never written to disk. `transcript.text` is shown on screen with sensitive values (Aadhaar, phone, account, OTP/PIN/password…) masked as `[#]`. |
 | `POST /api/v1/session/{id}/text` | `{text: string}` (≤ 500 chars) | `TurnResult` | Text fallback / keyboard. |
 | `POST /api/v1/session/{id}/option` | `{option_id: string}` | `TurnResult` | Tapped an option button. |
 | `POST /api/v1/session/{id}/speaking-done` | — | `{session}` | UI finished playing audio → `READY`, or `LISTENING` if `listen_next`. |
-| `POST /api/v1/session/{id}/language` | `{language: Lang}` | `{session}` | |
+| `POST /api/v1/session/{id}/language` | `{language: Lang}` | `{session}` | Also pushes a `health` event: `voice_output` depends on the session language. |
+| `POST /api/v1/session/{id}/greeting` | — | `{session, reply: Reply, audio_url?}` | The greeting again, in the session's current language, spoken if the TTS voice speaks it. The UI calls it after the citizen changes language on the welcome screens (the greeting it holds is in the old language), or when it finds an open session without a greeting (reload). Refused with 409 `bad_state` while a turn is running or the session is `PROCESSING`; from `LISTENING` the session first returns to `READY`. With audio the session goes to `SPEAKING` (release it with `speaking-done`). |
 | `POST /api/v1/session/{id}/touch` | — | `{session}` | Citizen interacted (resets inactivity clock). |
 | `POST /api/v1/session/{id}/end` | — | `{session, reply: Reply, audio_url?}` | Visible "End session" button. Returns goodbye. |
 | `GET /api/v1/session/{id}/audio/{n}.wav` | — | `audio/wav` | Reply audio for turn n. Kept in RAM (bounded LRU, ≤ 8 clips) and dropped at session end. |
 | `GET /api/v1/health` | — | health snapshot | Detailed component health (for technicians). |
+
+### Agent behaviour (implemented in `services/device-agent/internal/api`)
+
+* After a reply: with audio → `SPEAKING`; without audio and `end_session` →
+  session ends; else `LISTENING` if `listen_next` and voice input works,
+  otherwise `READY`. `speaking-done` (only valid in `SPEAKING`) applies the
+  same rule, ending the session if the reply asked for it.
+* `/text` and `/option` are also accepted in `LISTENING` (recording discarded)
+  and `SPEAKING` (reply interrupted); a second concurrent turn gets 409 `bad_state`.
+* Sessions started by the physical button carry the greeting on the SSE
+  `session.started` event as extra fields `reply` and `audio_url`; the UI
+  shows and plays it after the privacy notice.
+* A physical button press during a session counts as interaction, unless the
+  session looks abandoned (in `PROCESSING`/`SPEAKING` with no activity for
+  2 min, or idle for 9 min): then it ends with reason `abandoned`
+  (`inactivity_timeout` on the wire) and a fresh session starts, so the next
+  citizen never inherits the previous conversation. Presses are handled on
+  their own goroutine, single-flight.
+* `capabilities.voice_output` is false for a session whose language the TTS
+  voice does not speak (`speech.tts_langs`, default `["hi"]`: English
+  sessions have no audio).
+* A turn that panics returns the session to `READY` (500 `internal`); the
+  session manager also caps `PROCESSING` and `SPEAKING` so nothing can wedge
+  the kiosk. Speech synthesis gets its own minimum budget (10 s) even when
+  the turn used most of `api.turn_timeout`; a reply cut short that way, or
+  one "busy" answer, does not mark TTS unavailable (three busy answers in a
+  row do).
+* The goodbye clip returned by `/end` stays playable for `api.goodbye_grace`
+  (20 s) after the session ended; all other clips are dropped at session end.
+* Degraded: STT down → `voice_input=false`, `/listen` and `/audio` 503
+  `unavailable`; TTS down → no `audio_url`; LLM down → deterministic replies;
+  database down → `REQUIRES_ATTENTION` and session start refused with 503
+  `unavailable` (sessions could not be recorded safely).
+* Outbox events: `dialogue.turn` per turn and `session.ended` per session
+  (schemas in `internal/deviceapi`), each in the same transaction as the
+  `sessions` row update. No `session.started` event is sent because the central
+  API rejects unknown types. A turn that finishes after its session ended
+  (End pressed mid-turn) is not recorded. `started_at`/`ended_at` are
+  truncated to the minute, on the device, both in `session.ended` and in the
+  local `sessions` table. A full outbox refuses new events (none are
+  dropped) and puts the critical `outbox` component in `REQUIRES_ATTENTION`.
+* Health details (`components[].detail`) are fixed reason codes such as
+  `stt_request_failed`, `db_write_failed`, `outbox_full`, `disk_low`,
+  `speech_engine_hung`; error text goes only to the local log.
 
 ---
 

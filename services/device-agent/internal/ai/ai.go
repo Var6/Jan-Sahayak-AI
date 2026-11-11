@@ -101,7 +101,12 @@ func (g *gate) acquire(ctx context.Context) (func(err error), error) {
 		<-g.sem
 		g.mu.Lock()
 		defer g.mu.Unlock()
-		if err == nil || errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.Canceled) {
+			// The caller gave up (End pressed, page reloaded): says nothing
+			// about the runtime's health, so neither a failure nor a success.
+			return
+		}
+		if err == nil {
 			g.failures = 0
 			return
 		}

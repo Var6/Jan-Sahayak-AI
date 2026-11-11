@@ -1,0 +1,46 @@
+# Chromium in kiosk mode on the attached display, inside the cage Wayland
+# kiosk compositor (Pi OS Lite has no desktop). It only displays
+# http://127.0.0.1:8730/ served by the agent. Profile lives on tmpfs
+# (/run/jan-sahayak-kiosk) so nothing a citizen did survives a restart.
+# Microphone auto-grant and autoplay come from the managed policy in
+# /etc/chromium/policies/managed/jan-sahayak.json (deployment/raspberry-pi).
+[Unit]
+Description=Jan Sahayak kiosk display (Chromium)
+After=jan-sahayak-agent.service systemd-user-sessions.service
+Wants=jan-sahayak-agent.service
+Conflicts=getty@tty1.service
+# No start rate limit (see jan-sahayak-agent.service): keep retrying.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=kiosk
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+SupplementaryGroups=audio video input render
+RuntimeDirectory=jan-sahayak-kiosk
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/jan-sahayak-kiosk
+ExecStartPre=/usr/bin/curl -sf -o /dev/null --retry 60 --retry-connrefused --retry-delay 1 --max-time 2 http://127.0.0.1:8730/api/v1/status
+ExecStart=/usr/bin/cage -s -- /usr/bin/chromium --kiosk --ozone-platform=wayland \
+  --user-data-dir=/run/jan-sahayak-kiosk/profile --incognito --no-first-run --noerrdialogs \
+  --disable-infobars --disable-translate --disable-features=Translate,MediaRouter,TouchpadOverscrollHistoryNavigation \
+  --disable-pinch --overscroll-history-navigation=0 --autoplay-policy=no-user-gesture-required \
+  --disk-cache-size=1 --check-for-update-interval=31536000 --password-store=basic \
+  --disable-background-networking --disable-sync --disable-component-update \
+  --app=http://127.0.0.1:8730/
+Restart=always
+RestartSec=5
+MemoryHigh=900M
+MemoryMax=1G
+TasksMax=512
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=graphical.target

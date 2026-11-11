@@ -1,0 +1,210 @@
+{
+  "id": "bihar-mukhyamantri-udyami",
+  "version": 1,
+  "kind": "scheme",
+  "name": {
+    "hi": "मुख्यमंत्री उद्यमी योजना",
+    "en": "Mukhyamantri Udyami Yojana (MMUY)"
+  },
+  "aliases": [
+    "उद्यमी योजना",
+    "मुख्यमंत्री उद्यमी",
+    "udyami yojana",
+    "mukhyamantri udyami yojana",
+    "MMUY",
+    "बिज़नेस के लिए लोन",
+    "धंधा शुरू करने के लिए पैसा",
+    "udyog lagane ke liye loan",
+    "दस लाख वाली योजना"
+  ],
+  "state": "BR",
+  "department": {
+    "hi": "उद्योग विभाग, बिहार सरकार",
+    "en": "Industries Department, Government of Bihar"
+  },
+  "category": "self_employment",
+  "keywords": [
+    "उद्यम",
+    "उद्योग",
+    "व्यवसाय",
+    "स्वरोज़गार",
+    "लोन",
+    "अनुदान",
+    "business",
+    "enterprise",
+    "self employment",
+    "loan",
+    "subsidy"
+  ],
+  "summary": {
+    "hi": "मुख्यमंत्री उद्यमी योजना में बिहार के युवाओं को अपनी इकाई (उद्योग) लगाने के लिए अधिकतम दस लाख रुपये तक की मदद मिलती है — आधा अनुदान और आधा ब्याज मुक्त ऋण। आवेदन साल में तय समय पर udyami.bihar.gov.in पर ऑनलाइन होता है।",
+    "en": "MMUY gives Bihar youth up to ₹10 lakh to set up a unit — half as grant and half as interest-free loan. Applications open online on udyami.bihar.gov.in during a fixed window each year."
+  },
+  "eligibility": [
+    {
+      "hi": "बिहार का स्थायी निवासी।",
+      "en": "Permanent resident of Bihar."
+    },
+    {
+      "hi": "कम से कम 10+2 या इंटरमीडिएट, ITI, पॉलिटेक्निक डिप्लोमा या समकक्ष पास।",
+      "en": "Passed at least 10+2 / intermediate, ITI, polytechnic diploma or equivalent."
+    },
+    {
+      "hi": "उम्र 18 से 50 साल।",
+      "en": "Aged 18 to 50."
+    },
+    {
+      "hi": "योजना के पाँच भाग हैं, हर भाग में अलग वर्ग पात्र है: अनुसूचित जाति/जनजाति उद्यमी, अति पिछड़ा वर्ग उद्यमी, महिला उद्यमी (सभी वर्ग की महिलाएँ), युवा उद्यमी (सामान्य और पिछड़ा वर्ग के पुरुष), अल्पसंख्यक उद्यमी।",
+      "en": "Five components, each for a specific group: SC/ST entrepreneurs, EBC entrepreneurs, women entrepreneurs (women of all categories), youth entrepreneurs (General and BC men), minority entrepreneurs."
+    },
+    {
+      "hi": "यह योजना निर्माण (मैन्युफैक्चरिंग) और सेवा क्षेत्र के लिए है, व्यापार (ट्रेडिंग) के लिए नहीं।",
+      "en": "The scheme is for manufacturing and service sector units, not for trading."
+    }
+  ],
+  "benefits": [
+    {
+      "hi": "चुनी गई परियोजना के अनुसार अधिकतम दस लाख रुपये तक की मदद: परियोजना का 50 प्रतिशत (अधिकतम पाँच लाख रुपये) अनुदान और बाकी 50 प्रतिशत (अधिकतम पाँच लाख रुपये) ब्याज मुक्त ऋण।",
+      "en": "Up to ₹10 lakh depending on the selected project: 50% (max ₹5 lakh) as grant and 50% (max ₹5 lakh) as interest-free loan."
+    },
+    {
+      "hi": "युवा उद्यमी योजना में ऋण पर 1 प्रतिशत ब्याज लगता है।",
+      "en": "Under the youth entrepreneur component the loan carries 1% interest."
+    },
+    {
+      "hi": "ऋण की वापसी अंतिम किस्त मिलने के 12 महीने बाद से 84 किस्तों में।",
+      "en": "Loan repayment in 84 instalments starting 12 months after the final instalment."
+    }
+  ],
+  "age_rule": {
+    "hi": "18 से 50 साल",
+    "en": "18 to 50 years"
+  },
+  "questions": [
+    {
+      "id": "age_18_50",
+      "ask": {
+        "hi": "क्या आपकी उम्र 18 से 50 साल के बीच है?",
+        "en": "Is your age between 18 and 50?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "passed_12_iti_diploma",
+      "ask": {
+        "hi": "क्या आपने कम से कम 10+2 (इंटरमीडिएट), ITI या पॉलिटेक्निक डिप्लोमा पास किया है?",
+        "en": "Have you passed at least 10+2 (intermediate), ITI or a polytechnic diploma?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["no"]
+    },
+    {
+      "id": "trading_only",
+      "ask": {
+        "hi": "क्या आप सिर्फ़ सामान खरीद-बेच (दुकान/ट्रेडिंग) का काम करना चाहते हैं?",
+        "en": "Do you only want to do buying and selling (shop/trading)?"
+      },
+      "kind": "yes_no",
+      "ineligible_if": ["yes"]
+    }
+  ],
+  "mandatory_docs": [
+    {
+      "name": {
+        "hi": "मैट्रिक पास का प्रमाण पत्र (जिसमें जन्म तिथि लिखी हो)",
+        "en": "Matriculation certificate (showing date of birth)"
+      }
+    },
+    {
+      "name": {
+        "hi": "इंटरमीडिएट या समकक्ष पास का प्रमाण पत्र",
+        "en": "Intermediate or equivalent pass certificate"
+      }
+    },
+    {
+      "name": {
+        "hi": "जाति प्रमाण पत्र",
+        "en": "Caste certificate"
+      }
+    },
+    {
+      "name": {
+        "hi": "स्थायी निवास प्रमाण पत्र",
+        "en": "Permanent residence certificate"
+      }
+    },
+    {
+      "name": {
+        "hi": "आवेदक का लाइव फोटो और हस्ताक्षर",
+        "en": "Applicant's live photograph and signature"
+      }
+    }
+  ],
+  "optional_docs": [
+    {
+      "name": {
+        "hi": "दिव्यांगता प्रमाण पत्र (अगर ज़रूरी हो)",
+        "en": "Disability certificate (if applicable)"
+      }
+    }
+  ],
+  "application_steps": [
+    {
+      "hi": "आवेदन की खिड़की खुलने पर udyami.bihar.gov.in पर दिशानिर्देश पढ़कर ऑनलाइन आवेदन करें और कागज़ अपलोड करें। परियोजना सावधानी से चुनें — बाद में बदली नहीं जा सकती।",
+      "en": "When the application window opens, read the guideline on udyami.bihar.gov.in, apply online and upload documents. Choose the project carefully — it cannot be changed later."
+    },
+    {
+      "hi": "जिलेवार लक्ष्य के अनुसार कंप्यूटर लॉटरी (रैंडमाइज़ेशन) से प्रारंभिक चयन होता है, फिर मुख्यालय पर कागज़ों की जाँच के बाद अंतिम चयन।",
+      "en": "Provisional selection is by computerised randomisation against district targets, followed by document scrutiny at headquarters and final selection."
+    },
+    {
+      "hi": "अंतिम चयन के बाद प्रशिक्षण होता है और राशि किस्तों में इकाई के चालू खाते में आती है; हर किस्त का उपयोगिता प्रमाण पत्र 90 दिनों में पोर्टल पर अपलोड करना होता है।",
+      "en": "After final selection there is training, and money is paid in instalments into the unit's current account; a utilisation certificate for each instalment must be uploaded within 90 days."
+    },
+    {
+      "hi": "इकाई उसी ज़िले में लगानी होगी जिस ज़िले के आप स्थायी निवासी हैं।",
+      "en": "The unit must be set up in the district where you are a permanent resident."
+    }
+  ],
+  "where_to_apply": [
+    {
+      "hi": "ऑनलाइन: udyami.bihar.gov.in (सिर्फ़ आवेदन की खुली अवधि में)",
+      "en": "Online: udyami.bihar.gov.in (only during the open application window)"
+    },
+    {
+      "hi": "जानकारी के लिए: ज़िला उद्योग केंद्र",
+      "en": "For information: District Industries Centre"
+    }
+  ],
+  "official_url": "https://udyami.bihar.gov.in/",
+  "exceptions": [
+    {
+      "hi": "अयोग्य: ₹15,000 से ज़्यादा मासिक वेतन वाले सरकारी/संविदा कर्मी; उद्योग विभाग की किसी योजना (जैसे PMEGP, मुद्रा लोन, स्टार्ट-अप) के पहले के लाभार्थी; निर्वाचित जनप्रतिनिधि; जन वितरण प्रणाली के डीलर; 6 महीने या ज़्यादा की सज़ा पाए लोग।",
+      "en": "Not eligible: government/contract employees earning over ₹15,000 per month; earlier beneficiaries of Industries Department schemes (e.g. PMEGP, Mudra loan, start-up); elected representatives; PDS dealers; persons sentenced to 6 months or more."
+    },
+    {
+      "hi": "हर परियोजना को पूरे दस लाख रुपये नहीं मिलते; राशि चुनी गई परियोजना के अनुसार तय होती है।",
+      "en": "Not every project gets the full ₹10 lakh; the amount depends on the selected project."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://udyami.bihar.gov.in/pdf/FAQ.pdf",
+      "title": "मुख्यमंत्री उद्यमी योजना से संबंधित प्रश्न एवं उत्तर (Industries Department, Directorate of Technical Development)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "(decoded from legacy Kruti Dev font; verify against PDF) बिहार के स्थायी निवासी हो। कम-से-कम 10+2 या इन्टरमीडिएट, आई0टी0आई0, पॉलिटेक्निक डिप्लोमा या समकक्ष उत्तीर्ण हो। 18 से 50 वर्ष की आयु सीमा के अन्तर्गत हों। ... अधिकतम रू0 10.00 लाख तक का वित्तीय सहायता ... जिसमें कुल परियोजना का 50 प्रतिशत (अधिकतम रू0 5.00 लाख तक) अनुदान तथा शेष 50 प्रतिशत (अधिकतम रू0 5.00 लाख तक) ब्याज मुक्त ऋण (युवा उद्यमी योजना के मामले में 1 प्रतिशत का ब्याज के साथ) ... यह योजना विनिर्माण एवं सेवा प्रक्षेत्र के लिए है। व्यापार (बिजनेस) के लिये नहीं है। ... (Q12) उपयोगिता प्रमाण-पत्र पोर्टल पर अपलोड करने के लिए किस्त प्राप्ति की तिथि से 90 दिनों का समय-सीमा निर्धारित है। ... (Q18) अंतिम किस्त प्राप्त होने के 12 माह के उपरांत 84 किस्तों में ऋण राशि का भुगतान (Repayment) निर्धारित है। ... (Q22) आवेदक संविदाकर्मी/सरकारी नौकरी में हो (जिनका कुल मासिक वेतन रु0 15,000 से अधिक है।) ... किसी सक्षम न्यायालय द्वारा 06 माह या उससे अधिक के कारावास की सजा सुनाया गया हो।"
+    },
+    {
+      "url": "https://udyami.bihar.gov.in/",
+      "title": "Udyami portal — home page (notices)",
+      "accessed_on": "2026-11-09",
+      "excerpt": "वित्तीय वर्ष 2025-26 हेतु मुख्यमंत्री उद्यमी योजनान्तर्गत आवेदन के लिये ऑनलाईन पोर्टल दिनांक-25.02.2026 को अपराह्न 03.00 बजे से दिनांक-15.03.2026 के अपराह्न 05.00 बजे तक खुला रहेगा।"
+    }
+  ],
+  "last_verified": "",
+  "verification": {
+    "status": "UNVERIFIED",
+    "notes": "Draft by AI assistant; needs human review. DEADLINES CHANGE YEARLY: applications are accepted only in an annual window (2025-26 window was 25.02.2026–23.03.2026 after extension); do not tell citizens the portal is open without checking. The FAQ PDF is in legacy Kruti Dev font; the drafter decoded it manually — reviewer must check eligibility, amounts (₹10 lakh / ₹5 lakh / 1%), 84 instalments, document list and exclusions visually. The FAQ is undated; the 2025-26 guideline (Annexure-II PDF) is image-only and could not be read — it may change terms. Age limit may differ for some categories in newer guidelines — confirm. 'District Industries Centre' as an information point is drafter knowledge consistent with the FAQ's mention of 'महाप्रबंधक, जिला उद्योग केन्द्र' — confirm. Review fix 2026-11-09 (correctness finding 4): re-fetched the FAQ PDF; the 90-day utilisation certificate (Q12), 84 instalments after 12 months (Q18), and the ₹15,000 salary and 06-month sentence exclusions (Q22) are now quoted, decoded from Kruti Dev by the drafter — check the decoding visually. The qualification question now uses the FAQ's own wording (10+2 / intermediate)."
+  }
+}

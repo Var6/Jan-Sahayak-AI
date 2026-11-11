@@ -1,0 +1,79 @@
+{
+  "profile": "pi5",
+  "data_dir": "/var/lib/jan-sahayak",
+  "listen": "127.0.0.1:8730",
+  "log_level": "info",
+  "default_language": "hi",
+  "memory_limit_mb": 200,
+  "shutdown_timeout": "15s",
+  "session": {
+    "reminder_after": "2m",
+    "final_warning_after": "9m",
+    "close_after": "10m"
+  },
+  "api": {
+    "turn_timeout": "55s",
+    "write_timeout": "70s",
+    "sse_max_clients": 4,
+    "audio_cache_clips": 8,
+    "audio_cache_bytes": 25165824,
+    "goodbye_grace": "20s"
+  },
+  "speech": {
+    "stt_engine": "speech-worker",
+    "tts_enabled": true,
+    "url": "http://127.0.0.1:8743",
+    "stt_timeout": "20s",
+    "tts_timeout": "30s",
+    "max_audio_secs": 20
+  },
+  "llm": {
+    "enabled": true,
+    "url": "http://127.0.0.1:8742",
+    "timeout": "20s",
+    "max_tokens": 256,
+    "rephrase": false,
+    "classify_timeout": "4s",
+    "rephrase_timeout": "8s"
+  },
+  "dialogue": {
+    "min_stt_confidence": 0.45,
+    "max_misses": 3
+  },
+  "knowledge": {
+    "path": "/var/lib/jan-sahayak/knowledge/bundle.json",
+    "gazetteer_path": "/opt/jan-sahayak/share/bihar_districts.json",
+    "helplines_path": "/var/lib/jan-sahayak/knowledge/helplines.json",
+    "require_signed_bundle": true,
+    "allow_unverified_for_dev": false
+  },
+  "sync": {
+    "base_url": "",
+    "server_keys": {},
+    "batch_size": 100,
+    "interval": "1m",
+    "http_timeout": "30s"
+  },
+  "health": {
+    "mem_warn_mb": 150,
+    "mem_crit_mb": 220,
+    "disk_warn_mb": 1024,
+    "disk_crit_mb": 200,
+    "temp_warn_c": 75,
+    "temp_crit_c": 82
+  },
+  "backup": {
+    "enabled": true,
+    "hour": 3,
+    "keep": 7
+  },
+  "hal": {
+    "button": "gpio",
+    "gpio_chip": "/dev/gpiochip0",
+    "gpio_line": 17,
+    "active_low": true,
+    "pull_up": true,
+    "debounce": "30ms",
+    "min_press_gap": "1s"
+  }
+}

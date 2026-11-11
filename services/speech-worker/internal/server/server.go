@@ -63,7 +63,18 @@ type Config struct {
 	BusyWait      time.Duration // how long a request waits for a busy engine (default 2 s)
 	TTSLangs      []string      // accepted synthesis languages (default hi)
 	DefaultSID    int           // voice used when a request omits sid
+	// TTSMaxRate caps the sample rate of synthesised WAVs: output at a
+	// higher rate is halved (low-pass + decimate) until it fits, e.g.
+	// Supertonic's 44.1 kHz → 22.05 kHz, which halves the bytes the agent
+	// keeps in its reply-audio cache. 0 = native rate.
+	TTSMaxRate int
 }
+
+// WedgedFactor: an inference that has held its engine slot for longer than
+// WedgedFactor × its timeout is treated as a hung native call. GET /health
+// then answers 503 "wedged" and WatchWedged tells main to exit so systemd
+// restarts the worker (a native call cannot be interrupted any other way).
+const WedgedFactor = 3
 
 func (c *Config) defaults() {
 	if c.MaxAudioBytes <= 0 {
@@ -110,6 +121,11 @@ type Server struct {
 
 	sttSlot chan struct{} // capacity 1: one transcription at a time
 	ttsSlot chan struct{} // capacity 1: one synthesis at a time
+	// sttSince/ttsSince hold the UnixNano time the slot was taken (0 =
+	// free), so a hung native call is visible to /health and WatchWedged.
+	sttSince atomic.Int64
+	ttsSince atomic.Int64
+	now      func() time.Time
 	// inflight tracks inference goroutines, which may outlive their HTTP
 	// request after a timeout (native calls cannot be interrupted).
 	inflight sync.WaitGroup
@@ -123,6 +139,51 @@ func New(cfg Config, log *slog.Logger) *Server {
 		log:     log,
 		sttSlot: make(chan struct{}, 1),
 		ttsSlot: make(chan struct{}, 1),
+		now:     time.Now,
+	}
+}
+
+// Wedged reports whether an inference has held its engine slot for longer
+// than WedgedFactor × its timeout, naming the engine and how long it ran.
+func (s *Server) Wedged() (engine string, held time.Duration, wedged bool) {
+	now := s.now()
+	check := func(name string, since *atomic.Int64, timeout time.Duration) bool {
+		t := since.Load()
+		if t == 0 {
+			return false
+		}
+		d := now.Sub(time.Unix(0, t))
+		if d > WedgedFactor*timeout {
+			engine, held = name, d
+			return true
+		}
+		return false
+	}
+	if check("stt", &s.sttSince, s.cfg.STTTimeout) || check("tts", &s.ttsSince, s.cfg.TTSTimeout) {
+		return engine, held, true
+	}
+	return "", 0, false
+}
+
+// WatchWedged polls Wedged every interval until ctx ends and calls onWedged
+// once when an engine is wedged. main exits the process from onWedged so
+// systemd restarts the worker with fresh native engines.
+func (s *Server) WatchWedged(ctx context.Context, every time.Duration, onWedged func(engine string, held time.Duration)) {
+	if every <= 0 {
+		every = time.Second
+	}
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		if eng, held, ok := s.Wedged(); ok {
+			onWedged(eng, held)
+			return
+		}
 	}
 }
 
@@ -241,6 +302,14 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "loading"})
 		return
 	}
+	if eng, held, ok := s.Wedged(); ok {
+		// Engine slot held far past its timeout: the native call is hung.
+		// 503 makes the agent stop offering voice; main exits the process.
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"status": "wedged", "engine": eng, "held_ms": held.Milliseconds(),
+		})
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":   "ok",
 		"models":   e.info,
@@ -260,7 +329,7 @@ var (
 // deadline; the goroutine keeps the slot until fn really returns, so a
 // stuck native call blocks later requests (which get 503) instead of
 // piling up concurrent native work.
-func (s *Server) run(ctx context.Context, slot chan struct{}, timeout time.Duration, fn func(ctx context.Context) error) error {
+func (s *Server) run(ctx context.Context, slot chan struct{}, since *atomic.Int64, timeout time.Duration, fn func(ctx context.Context) error) error {
 	wait := time.NewTimer(s.cfg.BusyWait)
 	defer wait.Stop()
 	select {
@@ -270,12 +339,13 @@ func (s *Server) run(ctx context.Context, slot chan struct{}, timeout time.Durat
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+	since.Store(s.now().UnixNano())
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	done := make(chan error, 1)
 	s.inflight.Add(1)
 	go func() {
 		defer s.inflight.Done()
-		defer func() { <-slot }()
+		defer func() { since.Store(0); <-slot }()
 		defer cancel()
 		defer func() {
 			if rec := recover(); rec != nil {
@@ -378,7 +448,7 @@ func (s *Server) transcribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var res STTResult
-	err = s.run(r.Context(), s.sttSlot, s.cfg.STTTimeout, func(context.Context) error {
+	err = s.run(r.Context(), s.sttSlot, &s.sttSince, s.cfg.STTTimeout, func(context.Context) error {
 		res = e.stt.Transcribe(pcm)
 		return nil
 	})
@@ -465,7 +535,7 @@ func (s *Server) synthesize(w http.ResponseWriter, r *http.Request) {
 	maxSamples := int(s.cfg.MaxTTSSecs * float64(e.tts.SampleRate()))
 	var pcm []float32
 	var rate int
-	err := s.run(r.Context(), s.ttsSlot, s.cfg.TTSTimeout, func(ctx context.Context) error {
+	err := s.run(r.Context(), s.ttsSlot, &s.ttsSince, s.cfg.TTSTimeout, func(ctx context.Context) error {
 		var err error
 		pcm, rate, err = e.tts.Synthesize(ctx, text, lang, sid, float32(speed), maxSamples)
 		return err
@@ -473,6 +543,9 @@ func (s *Server) synthesize(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.runErr(w, err)
 		return
+	}
+	if s.cfg.TTSMaxRate > 0 {
+		pcm, rate = audio.Downsample(pcm, rate, s.cfg.TTSMaxRate)
 	}
 	wav := audio.EncodeMono16(pcm, rate)
 	secs := float64(len(pcm)) / float64(rate)

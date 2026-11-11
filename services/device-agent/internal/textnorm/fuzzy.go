@@ -60,6 +60,34 @@ func MaxEdits(n int) int {
 	}
 }
 
+// MaxExactLatinRunes: romanised (Latin-script) words of up to this many
+// letters are matched exactly, never fuzzily. Short romanised Hindi words
+// are too close to each other for edit distance to mean anything: "pati"
+// (husband) is one edit from "jati" (caste), "mar" (die) from "maar"
+// (beat). A misroute there can turn a safety disclosure into a welfare
+// answer, so these words must be spelled as listed.
+const MaxExactLatinRunes = 4
+
+// fuzzyEdits is MaxEdits for a folded term, with short Latin terms forced
+// to exact matching (see MaxExactLatinRunes).
+func fuzzyEdits(folded string, runes int) int {
+	if runes <= MaxExactLatinRunes && isLatin(folded) {
+		return 0
+	}
+	return MaxEdits(runes)
+}
+
+// isLatin reports whether s contains only ASCII letters, digits and spaces.
+func isLatin(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == ' ') {
+			return false
+		}
+	}
+	return true
+}
+
 // Vocab is a fuzzy-matchable set of folded terms (single words or
 // multi-word phrases). Each term maps to an arbitrary payload string (a
 // concept key, a record id …). It is immutable after Build and safe for
@@ -143,7 +171,7 @@ func (v *Vocab) Find(toks []string) []Match {
 				continue
 			}
 			gr := utf8.RuneCountInString(gram)
-			maxD := MaxEdits(gr)
+			maxD := fuzzyEdits(gram, gr)
 			if maxD == 0 {
 				continue
 			}
@@ -151,10 +179,11 @@ func (v *Vocab) Find(toks []string) []Match {
 			bestD := maxD + 1
 			for _, id := range v.words[n] {
 				t := v.terms[id]
-				if abs(t.runes-gr) > maxD || MaxEdits(t.runes) == 0 {
+				tEdits := fuzzyEdits(t.folded, t.runes)
+				if abs(t.runes-gr) > maxD || tEdits == 0 {
 					continue
 				}
-				lim := min(maxD, MaxEdits(t.runes))
+				lim := min(maxD, tEdits)
 				if d := Distance(gram, t.folded, lim); d <= lim && d < bestD {
 					best, bestD = id, d
 				}
