@@ -124,10 +124,18 @@ type HealthState = "HEALTHY" | "DEGRADED" | "UNAVAILABLE" | "RECOVERING" | "REQU
   (End pressed mid-turn) is not recorded. `started_at`/`ended_at` are
   truncated to the minute, on the device, both in `session.ended` and in the
   local `sessions` table. A full outbox refuses new events (none are
-  dropped) and puts the critical `outbox` component in `REQUIRES_ATTENTION`.
+  dropped) and puts the critical `outbox` component in `REQUIRES_ATTENTION`;
+  the session row is still closed, the refusal is counted in
+  `outbox_refused` (`GET /api/v1/health`) and logged only at the 1st, 10th,
+  100th and every 1,000th refusal. At startup the agent records the end of
+  any session a killed predecessor left open (`end_reason` `error`, with its
+  `session.ended` event).
 * Health details (`components[].detail`) are fixed reason codes such as
   `stt_request_failed`, `db_write_failed`, `outbox_full`, `disk_low`,
-  `speech_engine_hung`; error text goes only to the local log.
+  `speech_engine_hung`; error text goes only to the local log. The heartbeat
+  enforces this: a detail that is not 1–4 codes matching `[a-z0-9_]{1,64}`
+  (joined by `; `) is sent as `other` (`deviceapi.ReasonCode`), and central
+  applies the same rule before storing.
 
 ### Document check (implemented in `internal/api/documents.go`, `internal/docassist`)
 
@@ -190,18 +198,25 @@ Flow and rules:
   `tesseract - - -l eng+hin --psm 3` on stdin. Nothing is written to disk.
   The process runs with a minimal environment, `OMP_THREAD_LIMIT=1`, its own
   process group (killed on timeout, 15 s) and, on Linux, `RLIMIT_AS`
-  (`documents.max_memory_mb`, 512) and a parent-death signal. Stdout is
-  capped at 64 KB. One OCR runs at a time; a second gets 503 `unavailable`.
-  The request buffer is zeroed afterwards. Then the session returns to
-  `READY`.
+  (`documents.max_memory_mb`, 512), `RLIMIT_CORE` 0 (no core dump),
+  `oom_score_adj` 1000 and a parent-death signal. Stdout is capped at 64 KB.
+  One upload runs at a time per session: a second upload in the same session
+  while one is being read gets 409 `bad_state`; an upload while the health
+  self-test holds the engine gets 503 `unavailable`. The photo is read into
+  one buffer (sized from `Content-Length`) that is zeroed afterwards. Then the
+  session returns to `READY`.
 * Language order: `eng+hin`, not `hin+eng`. On the synthetic fixtures,
   `hin+eng` dropped the digit 1 (`1234` → `234`); `eng+hin` read both
   scripts correctly. Configurable in `documents.languages`.
 * The OCR text is classified by keyword rules (`internal/docassist/classify.go`;
   ties or weak evidence give `unknown`) and only the fields above leave the
   agent. Identifiers are masked, and every free-text field is scrubbed of
-  long digit runs and PAN/EPIC-shaped tokens. The raw OCR text is never
-  returned, logged, stored or sent centrally.
+  long digit runs (whatever the separators: spaces, dots, slashes, dashes,
+  commas, colons, underscores) and PAN/EPIC-shaped tokens (any case, with
+  O/I/l read as digits). `issuing_authority` is left out when it holds more
+  than four digits, and the unlabelled fallback skips address and relation
+  lines (पता, ग्राम, पिन, के पास, S/O, Address, Near …). The raw OCR text and
+  the document type are never logged (any level), stored or sent centrally.
 * If consent is withdrawn or the session ends while OCR runs, the result is
   discarded (403 `no_consent` / 404 `no_session`).
 * Coverage follows the knowledge display policy. The scheme record's
@@ -209,11 +224,16 @@ Flow and rules:
   or for an `unverified_dev` record shown with its disclaimer. Otherwise the
   response says verification is required (`message`). Matching is by document
   kind only (`TypesFor`): a requirement naming a bank account maps to the
-  passbook even if it also says "Aadhaar". Requirements a camera cannot check
+  passbook even if it also says "Aadhaar". A bare "bank" (for example "6
+  months' bank statement") in a requirement that also names another kind
+  of paper does not make the passbook count; passbook, account number or
+  IFSC always do. Requirements a camera cannot check
   (forms, photos, affidavits) are `not_checkable`.
 * Session end (or consent withdrawal) drops every document result. Camera
   consent never carries over to the next session.
 * Failures: OCR timeout or busy → 503 `unavailable` (camera stays offered);
+  a photo the engine cannot decode (for example a truncated JPEG that passed
+  the header check) → 400 `bad_image` (camera stays offered);
   OCR process failure → 503 and `ocr` reported `UNAVAILABLE`
   (`ocr_failed`), so `capabilities.camera` turns false until the next
   passing health check.
@@ -300,7 +320,8 @@ personally checked every fact against the listed sources; the four-eyes rule
 is explained before the server refuses with `own_edit`. Analytics counts the
 server suppressed (`null`) are shown as `<5` and drawn as hatched bars, never
 as zero. Devices count as online when the last heartbeat is under 15 minutes
-old (provisional: align with the device agent's heartbeat interval once it is fixed).
+old: three heartbeat intervals (the device agent sends one every 5 minutes,
+±10 % jitter), so one lost heartbeat does not show a device offline.
 The device list fetches per-device detail (3 at a time, visible page of 25
 only) for disk, memory, temperature and last sync, because the list endpoint
 carries only a heartbeat summary.

@@ -1,0 +1,86 @@
+// v1tool: uses the device store/outbox exactly as at commit 6286b80
+// (schema v1, migration 0001 only). Scratch tool for the upgrade test.
+//
+//	v1tool create <db> <sessions>   create a v1 DB with sessions + outbox events
+//	v1tool open <db>                open like a v1 binary would (exit 3 on refusal)
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"fmt"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/janmanindia/jan-sahayak/services/device-agent/internal/outbox"
+	"github.com/janmanindia/jan-sahayak/services/device-agent/internal/store"
+)
+
+func uuid() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+func main() {
+	ctx := context.Background()
+	if len(os.Args) < 3 {
+		fmt.Fprintln(os.Stderr, "usage: v1tool create|open <db> [n]")
+		os.Exit(2)
+	}
+	st, rec, err := store.Open(ctx, store.Options{Path: os.Args[2]})
+	if err != nil {
+		fmt.Println("REFUSED:", err)
+		os.Exit(3)
+	}
+	defer st.Close()
+	if rec != nil {
+		fmt.Printf("recovery: %+v\n", rec)
+	}
+	v, _ := st.SchemaVersion(ctx)
+	switch os.Args[1] {
+	case "open":
+		var n int
+		st.DB.QueryRow(`SELECT count(*) FROM outbox_events`).Scan(&n)
+		fmt.Printf("opened: schema v%d (binary v%d), outbox rows %d\n", v, store.LatestSchemaVersion(), n)
+	case "create":
+		n, _ := strconv.Atoi(os.Args[3])
+		ob := outbox.New(st.DB, outbox.DefaultConfig, nil)
+		for i := 0; i < n; i++ {
+			sid := uuid()
+			start := time.Now().UTC().Add(-time.Duration(n-i) * time.Hour).Truncate(time.Minute)
+			tx, _ := st.DB.BeginTx(ctx, nil)
+			if _, err := tx.ExecContext(ctx, `INSERT INTO sessions (id, started_at, ended_at, language, end_reason, turns) VALUES (?,?,?,?,?,?)`,
+				sid, start.Format(time.RFC3339Nano), start.Add(time.Minute).Format(time.RFC3339Nano), "hi", "citizen_ended", 2); err != nil {
+				panic(err)
+			}
+			for seq := 1; seq <= 2; seq++ {
+				if _, err := ob.Enqueue(ctx, tx, "dialogue.turn", map[string]any{"session_id": sid, "seq": seq, "language": "hi", "source": "text", "intent": "loan", "used_llm": false}); err != nil {
+					panic(err)
+				}
+			}
+			if _, err := ob.Enqueue(ctx, tx, "session.ended", map[string]any{"session_id": sid, "language": "hi", "started_at": start.Format(time.RFC3339),
+				"ended_at": start.Add(time.Minute).Format(time.RFC3339), "end_reason": "citizen_ended", "turns": 2}); err != nil {
+				panic(err)
+			}
+			if err := tx.Commit(); err != nil {
+				panic(err)
+			}
+		}
+		// One failed upload attempt: rows go back to PENDING with a v1-format
+		// (variable-width) next_attempt_at and attempts=1.
+		batch, evs, err := ob.Claim(ctx, 2)
+		if err != nil {
+			panic(err)
+		}
+		if err := ob.RetryBatch(ctx, batch, "simulated network error"); err != nil {
+			panic(err)
+		}
+		var rows int
+		st.DB.QueryRow(`SELECT count(*) FROM outbox_events`).Scan(&rows)
+		fmt.Printf("created: schema v%d, %d sessions, %d outbox rows (%d retried once)\n", v, n, rows, len(evs))
+	}
+}

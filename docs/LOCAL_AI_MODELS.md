@@ -81,6 +81,30 @@ Pi 5 (published, not yet measured by us): Gemma 4 E2B Q4_0 llama.cpp 4–7
 tok/s decode; peak 4.4 GB with default 128K context on an 8 GB Pi → we pin
 `-c 4096`.
 
+### Integrated stack under faults (Phase 12 soak, 2026-11-11, M1, swapping)
+
+60 minutes of continuous kiosk sessions through the agent, with the
+runtimes killed on purpose (details: `LONG_TERM_RELIABILITY.md` §8a). RSS is
+what `ps` reports on a machine with ~10 GB of swap in use, so resident pages
+were often compressed or swapped out — read these as lower bounds, not
+budgets.
+
+| Measure | Value |
+|---|---|
+| llama-server RSS (Gemma 4 E2B Q4_0, `-c 4096`, mmap) | median 281 MB, max 1,352 MB (after a restart the weights were resident again) |
+| Speech worker RSS (IndicConformer + VAD + Supertonic) | median 201 MB, max 463 MB |
+| llama-server start → `/health` 200 | ≈5 s; agent re-enables the LLM 16.7–17.4 s after the restart (next AI health check, 15 s interval) |
+| Speech worker start → `/health` 200 | 1.3–1.8 s; agent re-enables voice 3.5–14.6 s after the restart (same interval) |
+| Text turn incl. Hindi TTS (no fault) | p50 1.92 s, p95 3.42 s (n = 614) |
+| Text turn while the speech worker is down (no TTS) | p50 6 ms (n = 70) |
+| Voice turn (STT + dialogue + TTS) | p50 3.19 s, p95 6.45 s (n = 25, synthetic clips, no fault active; max 23.3 s during the Mac's sleep) |
+| Live check transcripts (`var/testaudio`, synthetic "Lekha" voice) | t1–t3 exact, t4 one vowel-sign error (आाया); confidence 0.77–0.80 |
+| Document OCR through the API (tesseract 5.5.4 `eng+hin`) | 0.41 s for a synthetic income certificate, read as `income_certificate` / high; Aadhaar fixture masked to `XXXX XXXX 9012` |
+
+Restart tuning note: recovery is dominated by `health.ai_interval` (15 s).
+Lowering it to 5 s would cut voice/LLM recovery to ~5–7 s for a few extra
+loopback health requests; not changed until measured on the Pi.
+
 ### Pi 5
 
 Not measured yet — no hardware purchased. See `HARDWARE_SETUP.md` for the

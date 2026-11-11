@@ -33,6 +33,8 @@ LimitMEMLOCK=infinity
 MemoryHigh=2300M
 MemoryMax=2560M
 MemorySwapMax=0
+# No core dumps: the server holds conversation text in memory.
+LimitCORE=0
 TasksMax=64
 LimitNOFILE=256
 Nice=5

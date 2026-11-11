@@ -31,6 +31,8 @@ TimeoutStopSec=45
 MemoryHigh=800M
 MemoryMax=900M
 MemorySwapMax=0
+# No core dumps: the worker holds citizen audio in memory.
+LimitCORE=0
 TasksMax=64
 LimitNOFILE=256
 UMask=0077

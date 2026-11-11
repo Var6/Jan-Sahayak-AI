@@ -92,9 +92,13 @@ tmpfs profile (`/run/jan-sahayak-kiosk`), `--incognito`,
 `--autoplay-policy=no-user-gesture-required` (button-started sessions have no tap
 to unlock audio), and the managed policy `chromium-policy.json`:
 
-* microphone and camera auto-granted for `http://127.0.0.1:8730` only (the
-  UI opens the camera only after the citizen consents to the document check;
-  the agent refuses document uploads without that consent);
+* microphone and camera auto-granted for `http://127.0.0.1:8730` only, and
+  denied (no prompt) everywhere else: `AudioCaptureAllowed` and
+  `VideoCaptureAllowed` are `false`, and the kiosk origin is listed in
+  `AudioCaptureAllowedUrls` / `VideoCaptureAllowedUrls`. Check on the Pi that
+  the kiosk still gets the microphone and camera without a prompt. The UI
+  opens the camera only after the citizen consents to the document check,
+  and the agent refuses document uploads without that consent;
 * every other URL blocked;
 * no password manager, autofill, sync, translate or dev tools.
 
@@ -181,10 +185,20 @@ Limits (config `documents.*`): OCR timeout 15 s, one process at a time,
 cgroup, so it counts against `MemoryMax=256M` of `jan-sahayak-agent`.
 Measured on the M1: agent RSS 24–26 MB during the check, and tesseract peak
 RSS 48 MB for a 1000×560 page and 52 MB for a 1600×1524 page. Together that
-fits under 256 MB. If the Pi shows tesseract being OOM-killed, the agent keeps
-running: the cgroup OOM killer picks the largest process, which is
-tesseract. The check fails with 503, `ocr` goes UNAVAILABLE until the next
-self-test, and the cap should then be raised.
+fits under 256 MB. If tesseract is OOM-killed on the Pi, the agent keeps
+running because the unit sets `OOMPolicy=continue` (systemd's default,
+`stop`, would stop and restart the whole agent and end the citizen's
+session). The agent sets tesseract's `oom_score_adj` to 1000, so the cgroup
+OOM killer picks tesseract first. The check then fails with 503, and `ocr`
+goes UNAVAILABLE until the next self-test. If that happens, raise the cap.
+Note: the 512 MB `RLIMIT_AS` is address space, not resident memory, and sits
+above the 256 MB cgroup limit, so the cgroup limit is the one that applies
+first. Not yet run on a Pi.
+
+Core dumps are off: `LimitCORE=0` on the agent, speech, LLM and kiosk units,
+and the agent also sets `RLIMIT_CORE=0` for itself and for each tesseract
+run. The kiosk unit sets `MemorySwapMax=0` so the browser (camera frames,
+the photo, microphone audio) is never swapped to the SD card.
 
 To verify on hardware:
 

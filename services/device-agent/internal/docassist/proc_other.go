@@ -20,6 +20,7 @@ func setProcAttrs(cmd *exec.Cmd) {
 	}
 }
 
-// limitMemory is a no-op outside Linux: macOS does not enforce RLIMIT_AS.
-// The kiosk (Linux) applies the cap.
-func limitMemory(int, uint64) error { return nil }
+// limitChild is a no-op outside Linux: macOS does not enforce RLIMIT_AS
+// and has no prlimit; the child inherits the agent's RLIMIT_CORE=0 (set at
+// startup). The kiosk (Linux) applies every limit per process.
+func limitChild(int, uint64) error { return nil }

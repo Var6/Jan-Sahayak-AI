@@ -80,7 +80,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"device_id": s.d.DeviceID, "version": s.d.Version, "capabilities": s.Capabilities(),
 		"api": map[string]any{
 			"turns": s.turns.Load(), "stt_errors": s.sttErrors.Load(), "tts_errors": s.ttsErrors.Load(),
-			"record_errors": s.recordErrors.Load(), "audio_cache_clips": clips, "audio_cache_bytes": bytes,
+			"record_errors": s.recordErrors.Load(), "outbox_refused": s.outboxRefused.Load(), "audio_cache_clips": clips, "audio_cache_bytes": bytes,
 		},
 	}
 	if st, err := s.d.Outbox.Stats(ctx); err == nil {

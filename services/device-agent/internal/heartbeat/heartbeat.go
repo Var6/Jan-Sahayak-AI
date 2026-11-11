@@ -236,7 +236,7 @@ func (w *Worker) Build(ctx context.Context) deviceapi.Heartbeat {
 			}
 			hb.Components = append(hb.Components, deviceapi.ComponentHealth{
 				Name: clip(c.Name, deviceapi.MaxShortText), State: string(c.State), Critical: c.Critical,
-				Detail: clip(c.Detail, deviceapi.MaxDetailText),
+				Detail: deviceapi.ReasonCode(c.Detail), // reason codes only, never free text
 			})
 		}
 	}

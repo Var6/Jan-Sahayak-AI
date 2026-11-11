@@ -43,7 +43,8 @@ type TesseractConfig struct {
 	// MaxOutputBytes caps the text read from stdout; the rest is discarded.
 	MaxOutputBytes int
 	// MaxMemoryMB caps the process's address space (RLIMIT_AS) on Linux;
-	// 0 = no cap. On other systems the cap is not applied.
+	// 0 = no cap. On other systems the cap is not applied. Core dumps are
+	// always disabled (RLIMIT_CORE=0) whatever this is.
 	MaxMemoryMB int
 }
 
@@ -130,14 +131,13 @@ func (t *Tesseract) run(ctx context.Context, img []byte) (string, error) {
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
-	// Cap the process's memory before it receives the image (tesseract
-	// only allocates image buffers after reading stdin).
-	if t.cfg.MaxMemoryMB > 0 {
-		if err := limitMemory(cmd.Process.Pid, uint64(t.cfg.MaxMemoryMB)<<20); err != nil {
-			_ = cmd.Process.Kill()
-			_ = cmd.Wait()
-			return "", fmt.Errorf("%w: memory limit: %v", ErrUnavailable, err)
-		}
+	// Before it receives the image (tesseract only allocates image buffers
+	// after reading stdin): no core dump, the memory cap, and first in
+	// line for the OOM killer (Linux; see limitChild).
+	if err := limitChild(cmd.Process.Pid, uint64(max(t.cfg.MaxMemoryMB, 0))<<20); err != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return "", fmt.Errorf("%w: process limits: %v", ErrUnavailable, err)
 	}
 	werr := make(chan error, 1)
 	go func() {
@@ -157,6 +157,13 @@ func (t *Tesseract) run(ctx context.Context, img []byte) (string, error) {
 		return "", ctx.Err()
 	}
 	if err != nil {
+		// A photo leptonica could not decode (truncated or corrupt JPEG
+		// that passed the header check) is the photo's fault, not the
+		// engine's: report ErrBadImage so the API answers 400 and keeps
+		// the camera on. The self-test (Health) catches a broken engine.
+		if badImageStderr(stderr.String()) {
+			return "", fmt.Errorf("%w: tesseract could not decode the image", ErrBadImage)
+		}
 		// stderr may echo nothing personal, but keep it out of errors
 		// that reach logs anyway: report its size only.
 		return "", fmt.Errorf("%w: tesseract: %v (stderr %d bytes)", ErrUnavailable, err, stderr.n)
@@ -206,6 +213,10 @@ func (t *Tesseract) Health(ctx context.Context) error {
 	defer func() { <-t.sem }()
 	start := time.Now()
 	text, err := t.run(ctx, selfTestPNG)
+	if errors.Is(err, ErrBadImage) {
+		// The embedded image is known good: the engine cannot decode.
+		return fmt.Errorf("%w: self-test image not decoded", ErrUnavailable)
+	}
 	if err != nil {
 		return err
 	}
@@ -239,6 +250,18 @@ func (t *Tesseract) short(ctx context.Context, arg string) (string, error) {
 		return "", err
 	}
 	return out.String(), nil
+}
+
+// badImageStderr reports whether tesseract's stderr says leptonica could
+// not decode the input image (tesseract 5.x: "Error in pixReadMem…",
+// "pix not read", "Image file … cannot be read").
+func badImageStderr(s string) bool {
+	for _, k := range []string{"pixReadMem", "pix not read", "no pix returned", "cannot be read", "Premature end of JPEG"} {
+		if strings.Contains(s, k) {
+			return true
+		}
+	}
+	return false
 }
 
 // selfTestPNG is a 360-px image of selfTestText rendered by

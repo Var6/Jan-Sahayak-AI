@@ -34,6 +34,13 @@ var (
 	}
 	// Words that mark a date as a birth date (never reported as issue date).
 	birthWords = []string{"जन्म", "birth", "dob", "d.o.b"}
+	// Lines that are (part of) a person's address or relation, never the
+	// issuing office, even when they mention one ("प्रखंड कार्यालय के पास").
+	addressWordsHi = []string{"पता", "ग्राम", "गाँव", "गांव", "पिन", "के पास", "निकट", "मोहल्ला", "पुत्र", "पुत्री", "पत्नी", "पति"}
+	reAddressEn    = regexp.MustCompile(`(?i)\b(?:address|addr|s/o|w/o|d/o|c/o|near|village|vill|pin|pincode|house|h\.?\s?no|po|ps)\b`)
+	// An address label on its own line ("पता:", "Address:"): the next line
+	// continues the address.
+	reAddressLabel = regexp.MustCompile(`(?i)^\s*(?:पता|address)\s*[:：\-–]?\s*$`)
 )
 
 func lines(text string) []string {
@@ -80,7 +87,10 @@ func plausibleName(v string) bool {
 }
 
 // extractAuthority returns the issuing office: a labelled value first,
-// else the first line that names an office/department/authority.
+// else the first line that names an office/department/authority and is not
+// part of an address. A value with more than four digits is dropped
+// altogether (an office name does not need them, and digits on a card are
+// most often an identifier, a phone number or a PIN code).
 func extractAuthority(text string) string {
 	ls := lines(text)
 	for _, l := range ls {
@@ -90,8 +100,14 @@ func extractAuthority(text string) string {
 			}
 		}
 	}
+	afterAddressLabel := false
 	for _, l := range ls {
 		low := strings.ToLower(l)
+		prevLabel := afterAddressLabel
+		afterAddressLabel = reAddressLabel.MatchString(l)
+		if prevLabel || afterAddressLabel || isAddressLine(low) {
+			continue
+		}
 		if strings.Contains(low, ":") {
 			continue // a labelled field of something else
 		}
@@ -107,10 +123,22 @@ func extractAuthority(text string) string {
 	return ""
 }
 
+// isAddressLine reports whether a (lower-cased) line looks like a postal
+// address or a relation ("S/O", "पुत्र") rather than an office name.
+func isAddressLine(low string) bool {
+	return containsAny(low, addressWordsHi) || reAddressEn.MatchString(low)
+}
+
+// maxAuthorityDigits: an issuing office with more digits is not shown.
+const maxAuthorityDigits = 4
+
 func cleanAuthority(v string) string {
 	v = collapseSpaces(strings.Trim(v, " \t-–:|"))
 	n := utf8.RuneCountInString(v)
 	if n < 3 || n > maxAuthorityRunes {
+		return ""
+	}
+	if countDigits(normalizeOCRDigits(v)) > maxAuthorityDigits {
 		return ""
 	}
 	letters := 0
@@ -123,6 +151,17 @@ func cleanAuthority(v string) string {
 		return ""
 	}
 	return scrub(v)
+}
+
+// countDigits counts ASCII and Devanagari digits.
+func countDigits(s string) int {
+	n := 0
+	for _, r := range s {
+		if (r >= '0' && r <= '9') || (r >= '०' && r <= '९') {
+			n++
+		}
+	}
+	return n
 }
 
 // extractIssueDate returns a labelled issue date as DD/MM/YYYY, or "".
@@ -249,19 +288,75 @@ func maskTail(s string) string {
 	return strings.Repeat("X", len(s)-4) + s[len(s)-4:]
 }
 
+// Free-text masking (scrub) is looser than maskedIDs: any separator OCR
+// may put between digit groups (spaces, dots, slashes, dashes, commas,
+// colons, underscores; up to two of them) and OCR letter/digit mix-ups.
+var (
+	reLooseDigitRun = regexp.MustCompile(`[0-9०-९](?:[\s./\-–—_,:]{0,2}[0-9०-९]){5,}`)
+	// PAN / EPIC shapes in any case, with O/I/l/| read for digits.
+	reLoosePAN  = regexp.MustCompile(`(?i)\b[a-z]{5}[0-9oil|]{4}[a-z]\b`)
+	reLooseEPIC = regexp.MustCompile(`(?i)\b[a-z]{3}[0-9oil|]{7}\b`)
+)
+
+// normalizeOCRDigits maps the usual OCR mix-ups (O/o → 0, I/l/| → 1)
+// inside whitespace-separated tokens that already contain a digit, so
+// "1234 5678 9O12" is recognised as a number. Other tokens are untouched.
+func normalizeOCRDigits(s string) string {
+	fs := strings.Fields(s)
+	changed := false
+	for i, f := range fs {
+		if countDigits(f) == 0 {
+			continue
+		}
+		g := strings.Map(func(r rune) rune {
+			switch r {
+			case 'O', 'o':
+				return '0'
+			case 'I', 'l', '|':
+				return '1'
+			}
+			return r
+		}, f)
+		if g != f {
+			fs[i], changed = g, true
+		}
+	}
+	if !changed {
+		return s
+	}
+	return strings.Join(fs, " ")
+}
+
+// maskLooseID masks a PAN/EPIC-shaped token that has at least one real
+// digit in its number part (so plain words are left alone).
+func maskLooseID(m string) string {
+	if countDigits(m) == 0 {
+		return m
+	}
+	return maskTail(strings.ToUpper(m))
+}
+
 // scrub masks identifiers inside a free-text field (name, office): long
-// digit runs and PAN/EPIC-shaped tokens. Defence in depth: the extractors
-// already reject names with digits.
+// digit runs (whatever the separators) and PAN/EPIC-shaped tokens (any
+// case, OCR mix-ups tolerated). Defence in depth: the extractors already
+// reject names with digits and offices with more than four digits.
 func scrub(s string) string {
-	s = reDigitRun.ReplaceAllStringFunc(s, func(m string) string {
-		d := strings.NewReplacer(" ", "", "-", "").Replace(asciiDigits(m))
+	s = reLoosePAN.ReplaceAllStringFunc(s, maskLooseID)
+	s = reLooseEPIC.ReplaceAllStringFunc(s, maskLooseID)
+	s = normalizeOCRDigits(collapseSpaces(s))
+	s = reLooseDigitRun.ReplaceAllStringFunc(s, func(m string) string {
+		d := asciiDigits(m)
+		d = strings.Map(func(r rune) rune {
+			if r >= '0' && r <= '9' {
+				return r
+			}
+			return -1
+		}, d)
 		if len(d) < 6 {
 			return m
 		}
 		return maskDigits(d, "number")
 	})
-	s = rePAN.ReplaceAllStringFunc(s, maskTail)
-	s = reEPIC.ReplaceAllStringFunc(s, maskTail)
 	return s
 }
 

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"os"
 	"path/filepath"
@@ -317,5 +318,101 @@ func TestOutboxCounterTracksRows(t *testing.T) {
 	var n int
 	if err := s.DB.QueryRow(`SELECT n FROM outbox_counter`).Scan(&n); err != nil || n != 2 {
 		t.Fatalf("counter %d err %v", n, err)
+	}
+}
+
+// openV1 builds a schema-v1 database the way a v1 binary did: migration
+// 0001 only, then a v1-format (variable-width) scheduling timestamp.
+func openV1(t *testing.T, path string) {
+	t.Helper()
+	db, err := sql.Open("sqlite", dsn(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	m1, err := migrationFS.ReadFile("migrations/0001_init.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(string(m1)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("PRAGMA user_version = 1"); err != nil {
+		t.Fatal(err)
+	}
+	const p = `{"session_id":"s1"}`
+	if _, err := db.Exec(`INSERT INTO outbox_events(id,type,payload,payload_sha256,created_at,next_attempt_at)
+		VALUES('e1','session.ended',?,?,'2026-11-01T10:00:00.5Z','2026-11-01T10:00:00.5Z')`, p, syncproto.PayloadHash([]byte(p))); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Upgrading v1 → current writes a verified pre-migration copy (still at
+// v1, same rows) before migrating; the live DB keeps every row.
+func TestMigrationBacksUpFirst(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "device.db")
+	openV1(t, path)
+	s, rec, err := Open(context.Background(), Options{Path: path})
+	if err != nil || rec != nil {
+		t.Fatalf("open: %v %+v", err, rec)
+	}
+	defer s.Close()
+	if v, _ := s.SchemaVersion(context.Background()); v != LatestSchemaVersion() {
+		t.Fatalf("schema v%d", v)
+	}
+	var n int
+	var next string
+	if err := s.DB.QueryRow(`SELECT (SELECT n FROM outbox_counter), next_attempt_at FROM outbox_events WHERE id='e1'`).Scan(&n, &next); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || len(next) != 30 {
+		t.Fatalf("after migration: counter %d next_attempt_at %q", n, next)
+	}
+	backups, _ := filepath.Glob(filepath.Join(dir, "backups", "pre-migration-v1-*.db"))
+	if len(backups) != 1 {
+		t.Fatalf("pre-migration backups: %v", backups)
+	}
+	b, err := sql.Open("sqlite", dsn(backups[0]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	var v, rows int
+	if err := b.QueryRow(`PRAGMA user_version`).Scan(&v); err != nil || v != 1 {
+		t.Fatalf("backup user_version %d err %v", v, err)
+	}
+	if err := b.QueryRow(`SELECT count(*) FROM outbox_events`).Scan(&rows); err != nil || rows != 1 {
+		t.Fatalf("backup rows %d err %v", rows, err)
+	}
+	// Opening again does not write another pre-migration copy.
+	s.Close()
+	s2, _, err := Open(context.Background(), Options{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s2.Close()
+	if again, _ := filepath.Glob(filepath.Join(dir, "backups", "pre-migration-*.db")); len(again) != 1 {
+		t.Fatalf("pre-migration backups after reopen: %v", again)
+	}
+}
+
+// If the pre-migration copy cannot be written, the DB is left at v1.
+func TestMigrationRefusedWithoutBackup(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "device.db")
+	openV1(t, path)
+	blocker := filepath.Join(dir, "not-a-dir")
+	if err := os.WriteFile(blocker, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := Open(context.Background(), Options{Path: path, BackupDir: blocker}); err == nil || !strings.Contains(err.Error(), "without a backup") {
+		t.Fatalf("want refusal, got %v", err)
+	}
+	db, _ := sql.Open("sqlite", dsn(path))
+	defer db.Close()
+	var v int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&v); err != nil || v != 1 {
+		t.Fatalf("user_version %d err %v; want 1", v, err)
 	}
 }

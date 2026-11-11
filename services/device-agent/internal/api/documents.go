@@ -133,13 +133,17 @@ func (s *Server) handleCameraConsent(w http.ResponseWriter, r *http.Request) {
 		writeAPIErr(w, errCameraOff)
 		return
 	}
+	err := s.d.Sessions.SetCameraConsent(id, *body.Consent)
 	if !*body.Consent {
-		// Withdrawing consent also forgets what was read.
+		// Withdrawing consent also forgets what was read. Consent is
+		// turned off first: an upload stores its result only while
+		// holding s.mu and after re-checking consent, so nothing read
+		// before the withdrawal can be stored after this clear.
 		s.mu.Lock()
 		c.doc = docState{}
 		s.mu.Unlock()
 	}
-	if err := s.d.Sessions.SetCameraConsent(id, *body.Consent); err != nil {
+	if err != nil {
 		writeAPIErr(w, sessionErr(err))
 		return
 	}
@@ -177,18 +181,16 @@ func (s *Server) handleDocument(w http.ResponseWriter, r *http.Request) {
 	if maxBytes <= 0 {
 		maxBytes = 2 << 20
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
-	img, err := io.ReadAll(r.Body) // RAM only; never written to disk
+	buf, img, err := readImage(w, r, maxBytes) // RAM only; never written to disk
+	defer clear(buf)                           // drop the photo's bytes as soon as we are done
 	if err != nil {
-		var mbe *http.MaxBytesError
-		if errors.As(err, &mbe) {
+		if errors.Is(err, errImageTooLarge) {
 			writeErr(w, http.StatusRequestEntityTooLarge, "too_large", fmt.Sprintf("image exceeds %d bytes", maxBytes))
 			return
 		}
 		writeErr(w, http.StatusBadRequest, "bad_image", "could not read the image")
 		return
 	}
-	defer clear(img) // drop the photo's bytes as soon as we are done
 	if err := docassist.CheckJPEG(img, dd.Image); err != nil {
 		if errors.Is(err, docassist.ErrTooLarge) {
 			writeErr(w, http.StatusRequestEntityTooLarge, "too_large", "image too large (bytes or pixels)")
@@ -237,10 +239,14 @@ func (s *Server) handleDocument(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	start := time.Now()
 	text, err := dd.OCR.Recognize(ctx, img)
-	clear(img)
+	clear(buf)
 	if err != nil {
 		back()
 		switch {
+		case errors.Is(err, docassist.ErrBadImage):
+			// The engine could not decode this photo (truncated or
+			// corrupt): the photo's fault, the camera stays on.
+			writeErr(w, http.StatusBadRequest, "bad_image", "the photo could not be read; please take it again")
 		case errors.Is(err, docassist.ErrBusy):
 			writeErr(w, http.StatusServiceUnavailable, "unavailable", "the document reader is busy; please try again")
 		case errors.Is(err, docassist.ErrTimeout), errors.Is(err, context.DeadlineExceeded):
@@ -258,15 +264,13 @@ func (s *Server) handleDocument(w http.ResponseWriter, r *http.Request) {
 	res := docassist.Analyze(text) // the OCR text goes no further
 
 	// Consent may have been withdrawn, or the session ended, while OCR ran:
-	// then the result is discarded, not shown.
-	if err := s.d.Sessions.RequireCameraConsent(id); err != nil {
-		back()
-		writeAPIErr(w, consentErr(err))
-		return
-	}
+	// then the result is discarded, not shown. The re-check and the store
+	// happen under s.mu, so a withdrawal (consent off, then clear under
+	// s.mu) cannot slip in between them.
 	s.mu.Lock()
+	cerr := s.d.Sessions.RequireCameraConsent(id)
 	ended := c.ended
-	if !ended {
+	if cerr == nil && !ended {
 		c.doc.pending = nil
 		if res.Type != docassist.Unknown {
 			p := res
@@ -275,6 +279,11 @@ func (s *Server) handleDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := c.lang
 	s.mu.Unlock()
+	if cerr != nil {
+		back()
+		writeAPIErr(w, consentErr(cerr))
+		return
+	}
 	if ended {
 		writeAPIErr(w, sessionErr(session.ErrNoSession))
 		return
@@ -284,8 +293,8 @@ func (s *Server) handleDocument(w http.ResponseWriter, r *http.Request) {
 		writeAPIErr(w, sessionErr(err))
 		return
 	}
-	s.log.Debug("api: document read", "type", string(res.Type), "confidence", res.Confidence,
-		"ms", time.Since(start).Milliseconds())
+	// No document type, field or text in logs, at any level.
+	s.log.Debug("api: document read", "ms", time.Since(start).Milliseconds())
 	writeJSON(w, http.StatusOK, DocumentResult{
 		Session: snap,
 		Document: DocumentJSON{
@@ -377,6 +386,43 @@ func (s *Server) handleDocumentConfirm(w http.ResponseWriter, r *http.Request) {
 		res.Caveat = docassist.CoverageCaveat(lang)
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+var errImageTooLarge = errors.New("image too large")
+
+// readImage reads the request body into one buffer, sized from
+// Content-Length when it is given (else maxBytes+1), so the photo exists
+// in exactly one place that the caller zeroes (io.ReadAll would leave
+// partial copies behind as it grows). buf is the whole buffer to clear;
+// img is the photo within it.
+func readImage(w http.ResponseWriter, r *http.Request, maxBytes int64) (buf, img []byte, err error) {
+	if r.ContentLength > maxBytes {
+		return nil, nil, errImageTooLarge
+	}
+	size := maxBytes + 1
+	if r.ContentLength > 0 {
+		size = r.ContentLength + 1 // +1 detects a body longer than declared
+	}
+	body := http.MaxBytesReader(w, r.Body, maxBytes)
+	buf = make([]byte, size)
+	n, err := io.ReadFull(body, buf)
+	switch {
+	case errors.Is(err, io.ErrUnexpectedEOF), errors.Is(err, io.EOF):
+		// Fewer bytes than the buffer: the whole body was read.
+	case err != nil:
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			return buf, nil, errImageTooLarge
+		}
+		return buf, nil, err
+	default:
+		// The buffer filled up: more than declared or more than allowed.
+		return buf, nil, errImageTooLarge
+	}
+	if n == 0 {
+		return buf, nil, io.ErrUnexpectedEOF
+	}
+	return buf, buf[:n], nil
 }
 
 func containsType(ts []docassist.DocType, t docassist.DocType) bool {

@@ -36,6 +36,11 @@ Restart=always
 RestartSec=5
 MemoryHigh=900M
 MemoryMax=1G
+# Never swap the browser: its memory holds camera frames, the photo being
+# sent and microphone audio, and Pi OS enables an SD-card swapfile.
+MemorySwapMax=0
+# No core dumps of the browser for the same reason.
+LimitCORE=0
 TasksMax=512
 NoNewPrivileges=yes
 ProtectSystem=full

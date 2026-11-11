@@ -8,6 +8,8 @@
 #   make down       stop them (scripts/dev/down.sh)
 #   make smoke      end-to-end curl smoke test against the running dev stack
 #   make soak       10-minute text-session soak against the running dev stack
+#   make faultsoak  60-minute fault-injection soak (owns the whole stack; see scripts/dev/faultsoak/run.sh)
+#   make upgradetest device DB v1 → current upgrade + rollback test
 #
 # The speech worker is a separate cgo module (services/speech-worker); it
 # cannot be cross-compiled from macOS — build it on the Pi (see
@@ -19,7 +21,7 @@ VERSION ?= $(shell git describe --always --dirty 2>/dev/null || echo dev)-$(shel
 LDFLAGS := -s -w -X main.version=$(VERSION)
 AGENT   := ./services/device-agent/cmd/device-agent
 
-.PHONY: build build-agent build-pi webui speech-worker test race lint dev down smoke soak clean
+.PHONY: build build-agent build-pi webui speech-worker test race lint dev down smoke soak faultsoak upgradetest clean
 
 build: webui build-agent
 
@@ -61,6 +63,12 @@ smoke:
 
 soak:
 	$(GO) run ./scripts/dev/soak -duration 10m -sessions 100 -pid $$(cat var/run/agent.pid)
+
+faultsoak:
+	scripts/dev/faultsoak/run.sh -duration 60m
+
+upgradetest:
+	scripts/dev/upgradetest/run.sh
 
 clean:
 	rm -f bin/device-agent bin/linux-arm64/device-agent

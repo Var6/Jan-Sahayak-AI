@@ -3,6 +3,7 @@ package deviceapi
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"time"
 
@@ -20,6 +21,28 @@ const (
 	MaxDetailText    = 200
 	MinHeartbeatSecs = 20 // server refuses heartbeats more frequent than this
 )
+
+// DetailOther replaces a component detail that is not a reason code.
+const DetailOther = "other"
+
+// reReasonCodes: one or more fixed reason codes ("disk_low",
+// "system_memory_low; throttled"). Free text (an error string that could
+// quote citizen input) never matches.
+var reReasonCodes = regexp.MustCompile(`^[a-z0-9_]{1,64}(?:; [a-z0-9_]{1,64}){0,3}$`)
+
+// ReasonCode returns detail if it is made only of reason codes, "" for
+// "", and DetailOther for anything else. Both the device (before sending)
+// and the central API (before storing) apply it, so a component detail can
+// never carry free text centrally.
+func ReasonCode(detail string) string {
+	if detail == "" {
+		return ""
+	}
+	if len(detail) <= MaxDetailText && reReasonCodes.MatchString(detail) {
+		return detail
+	}
+	return DetailOther
+}
 
 // ComponentHealth is one entry of the device health snapshot.
 type ComponentHealth struct {

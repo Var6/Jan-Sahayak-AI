@@ -1,9 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
@@ -149,6 +151,23 @@ func TestOutboxFullReportsRequiresAttention(t *testing.T) {
 	}
 	if h.mon.Snapshot().Overall != health.RequiresAttention {
 		t.Fatalf("overall %s", h.mon.Snapshot().Overall)
+	}
+}
+
+// A full outbox under load logs a bounded number of lines, while every
+// refusal is still counted.
+func TestOutboxFullLogIsRateLimited(t *testing.T) {
+	h := newHarness(t, hopts{})
+	var buf bytes.Buffer
+	h.srv.log = slog.New(slog.NewJSONHandler(&buf, nil))
+	for i := 0; i < 2500; i++ {
+		h.srv.recordResult("turn", errorsJoinFull())
+	}
+	if n := strings.Count(buf.String(), "outbox full"); n != 5 { // 1, 10, 100, 1000, 2000
+		t.Fatalf("%d log lines for 2500 refusals, want 5", n)
+	}
+	if h.srv.outboxRefused.Load() != 2500 || h.srv.recordErrors.Load() != 2500 {
+		t.Fatalf("counters: refused %d record_errors %d", h.srv.outboxRefused.Load(), h.srv.recordErrors.Load())
 	}
 }
 

@@ -1,7 +1,7 @@
 {
-  "AudioCaptureAllowed": true,
+  "AudioCaptureAllowed": false,
   "AudioCaptureAllowedUrls": ["http://127.0.0.1:8730"],
-  "VideoCaptureAllowed": true,
+  "VideoCaptureAllowed": false,
   "VideoCaptureAllowedUrls": ["http://127.0.0.1:8730"],
   "AutoplayAllowed": true,
   "AutoplayAllowlist": ["http://127.0.0.1:8730"],

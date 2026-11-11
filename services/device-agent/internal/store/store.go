@@ -133,7 +133,7 @@ func Open(ctx context.Context, o Options) (*Store, *Recovery, error) {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	s := &Store{DB: db, path: o.Path}
-	if err := s.migrate(ctx); err != nil {
+	if err := s.migrate(ctx, o.BackupDir); err != nil {
 		db.Close()
 		return nil, rec, err
 	}
@@ -298,7 +298,13 @@ func LatestSchemaVersion() int {
 // migrate applies pending migrations, each in its own transaction together
 // with the user_version bump, so a power cut mid-migration leaves the
 // database at the previous version.
-func (s *Store) migrate(ctx context.Context) error {
+//
+// Before upgrading an existing database it writes a verified copy,
+// <backupDir>/pre-migration-v<cur>-<time>.db, which is what a rollback to
+// the previous binary restores (docs/LONG_TERM_RELIABILITY.md §7a). If that
+// copy cannot be written the migration is refused and the database stays at
+// the old version, so the previous binary can still open it.
+func (s *Store) migrate(ctx context.Context, backupDir string) error {
 	ms, err := loadMigrations()
 	if err != nil {
 		return err
@@ -312,6 +318,12 @@ func (s *Store) migrate(ctx context.Context) error {
 		// run rather than corrupt data; the updater must restore a matching
 		// backup or roll forward.
 		return fmt.Errorf("store: database schema v%d is newer than this binary (v%d)", cur, len(ms))
+	}
+	if cur > 0 && cur < len(ms) {
+		name := fmt.Sprintf("pre-migration-v%d-%s.db", cur, time.Now().UTC().Format("20060102T150405Z"))
+		if _, err := s.backupTo(ctx, backupDir, name); err != nil {
+			return fmt.Errorf("store: refusing to migrate v%d→v%d without a backup: %w", cur, len(ms), err)
+		}
 	}
 	for _, m := range ms[cur:] {
 		tx, err := s.DB.BeginTx(ctx, nil)
@@ -338,10 +350,21 @@ func (s *Store) migrate(ctx context.Context) error {
 // directory entry are fsynced so a power cut cannot leave a newest backup
 // that exists by name but not on disk.
 func (s *Store) Backup(ctx context.Context, dir string, keep int) (string, error) {
+	dst, err := s.backupTo(ctx, dir, "device-"+time.Now().UTC().Format("20060102T150405Z")+".db")
+	if err != nil {
+		return "", err
+	}
+	pruneBackups(dir, keep)
+	return dst, nil
+}
+
+// backupTo writes a verified, fsynced VACUUM INTO copy to dir/name.
+// Pre-migration copies do not match the device-*.db pattern, so rotation
+// never prunes them (they are written only when the schema changes).
+func (s *Store) backupTo(ctx context.Context, dir, name string) (string, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
-	name := "device-" + time.Now().UTC().Format("20060102T150405Z") + ".db"
 	dst := filepath.Join(dir, name)
 	tmp := dst + ".partial"
 	_ = os.Remove(tmp)
@@ -366,7 +389,6 @@ func (s *Store) Backup(ctx context.Context, dir string, keep int) (string, error
 	if err := syncDir(dir); err != nil {
 		return "", fmt.Errorf("store: backup dir fsync: %w", err)
 	}
-	pruneBackups(dir, keep)
 	return dst, nil
 }
 

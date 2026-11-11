@@ -365,9 +365,12 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	if models == nil {
 		models = map[string]string{}
 	}
-	comps := hb.Components
-	if comps == nil {
-		comps = []deviceapi.ComponentHealth{}
+	// Details are stored only as reason codes; anything else (free text
+	// from an older or faulty device) becomes "other".
+	comps := make([]deviceapi.ComponentHealth, 0, len(hb.Components))
+	for _, c := range hb.Components {
+		c.Detail = deviceapi.ReasonCode(c.Detail)
+		comps = append(comps, c)
 	}
 	mj, _ := json.Marshal(models)
 	cj, _ := json.Marshal(comps)

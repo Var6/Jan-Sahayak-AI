@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -142,5 +143,24 @@ func TestHeartbeatValidate(t *testing.T) {
 	h.Components = []ComponentHealth{{Name: "x\n", State: "OK"}}
 	if err := h.Validate(); err == nil {
 		t.Fatal("invalid heartbeat accepted")
+	}
+}
+
+func TestReasonCodeAllowlist(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                             "",
+		"disk_low":                     "disk_low",
+		"system_memory_low; throttled": "system_memory_low; throttled",
+		"not started":                  DetailOther,
+		"stt failed on: मेरा नाम 98765": DetailOther,
+		"Disk_Low":              DetailOther,
+		"a; b; c; d; e":         DetailOther,
+		strings.Repeat("x", 65): DetailOther,
+		"disk_low;throttled":    DetailOther,
+		"stt_unreachable\nraw":  DetailOther,
+	} {
+		if got := ReasonCode(in); got != want {
+			t.Errorf("ReasonCode(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

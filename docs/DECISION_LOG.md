@@ -172,3 +172,55 @@ via `ai.LlamaConfig.APIKey`. **Status:** implemented (untested on Pi).
 **Why:** 1.27's only relevant gain is a stdlib `uuid`; our own UUIDv7 is ~60
 lines and tested. Avoids a system toolchain change mid-project. **Status:**
 accepted; revisit at next toolchain refresh.
+
+### D-027 · 2026-11-11 · Document OCR language order is `eng+hin`
+**Why:** on the synthetic fixtures `hin+eng` dropped the digit 1 on every
+image ("1234" → "234"); `eng+hin` read both scripts correctly. Configurable
+in `documents.languages`; re-check on real, consented phone photos.
+**Status:** accepted (Phase 11).
+
+### D-028 · 2026-11-11 · Sessions left open by a killed agent are closed at the next start
+**Why:** the Phase 12 fault soak SIGKILLed the agent mid-session: the turns
+were recorded, but the `sessions` row stayed open and no `session.ended`
+event was ever sent. At startup, before any session can start, the agent
+now closes every open row with `end_reason = "error"` and enqueues its
+`session.ended` in the same transaction (`api.CloseOrphanedSessions`). The
+real end time is unknown, so `ended_at` = `started_at` (minute); analytics
+must read "error, zero length" as "end not observed". **Status:** accepted.
+
+### D-029 · 2026-11-11 · Verified backup before every device schema migration
+**Why:** a rollback to the previous binary needs a database at the old
+schema (a binary refuses a newer one). `store.Open` now writes
+`backups/pre-migration-v<N>-<time>.db` (VACUUM INTO, fsynced, quick_check)
+before migrating, and refuses to migrate if it cannot — the DB then stays at
+the old version and the old binary still works. These copies are not
+rotated (one per schema change). Procedure: `LONG_TERM_RELIABILITY.md` §7a.
+**Status:** accepted.
+
+### D-030 · 2026-11-11 · Heartbeat health details are reason codes only, enforced on both sides
+**Why:** the "fixed reason codes" rule was a convention; a future check that
+put an error string (which can quote citizen input) into a detail would have
+shipped it centrally. `deviceapi.ReasonCode` keeps a detail only if it is
+1–4 codes matching `[a-z0-9_]{1,64}` joined by `; `, else `other`. The device
+applies it before sending, central before storing (so an older device cannot
+store free text either). Two health details with spaces were renamed
+(`not_yet_checked`, `check_timed_out`). **Status:** accepted.
+
+### D-031 · 2026-11-11 · A tesseract OOM must not restart the agent
+**Why:** tesseract runs inside the agent's cgroup (`MemoryMax=256M`); with
+systemd's default `OOMPolicy=stop` an OOM kill of tesseract stopped and
+restarted the whole agent, ending the citizen's session. The agent unit now
+sets `OOMPolicy=continue`, and the agent sets tesseract's `oom_score_adj` to
+1000 so the OOM killer picks it first. A separate scope/slice for OCR was
+considered; it needs D-Bus access from a hardened unit and is not worth it
+for one short-lived child. **Status:** accepted; untested on a Pi.
+
+### D-032 · 2026-11-11 · `issuing_authority` is dropped when it holds more than 4 digits
+**Why:** OCR can put any separator between digit groups (dots, slashes,
+dashes) and misread digits as letters, so masking alone let a full
+Aadhaar-shaped number reach the kiosk screen in the office field. An office
+name does not need more than 4 digits; dropping the field is safer than
+trying to mask every OCR variant (masking was also made looser, as defence
+in depth). The unlabelled fallback also skips address and relation lines.
+**Status:** accepted; legal review of what may be displayed (DPDP, UIDAI
+rules) still pending.

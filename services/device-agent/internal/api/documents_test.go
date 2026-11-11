@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"net/http"
@@ -422,6 +423,18 @@ func TestDocumentOCRErrors(t *testing.T) {
 	}
 	if got := d.sm.Current().Activity; got != session.Ready {
 		t.Fatalf("activity after OCR error: %s", got)
+	}
+	// A photo the engine could not decode (truncated JPEG): 400, and the
+	// camera stays on for everyone.
+	d.ocr.set("", fmt.Errorf("%w: tesseract could not decode the image", docassist.ErrBadImage))
+	if code, ec, _ := d.upload(sid, img, "image/jpeg"); code != 400 || ec != "bad_image" {
+		t.Fatalf("undecodable photo: %d %s", code, ec)
+	}
+	if !d.srv.Capabilities().Camera {
+		t.Fatal("an undecodable photo must not turn the camera off")
+	}
+	if got := d.sm.Current().Activity; got != session.Ready {
+		t.Fatalf("activity after bad image: %s", got)
 	}
 	d.ocr.set("", errors.New("exec: tesseract crashed"))
 	if code, _, _ := d.upload(sid, img, "image/jpeg"); code != 503 {

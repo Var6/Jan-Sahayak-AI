@@ -125,8 +125,8 @@ func newEnv(t *testing.T) *env {
 		Check: func(context.Context) health.Result { return health.Result{State: health.Healthy} }})
 	mon.Register(health.Component{Name: "stt", Interval: time.Hour, Timeout: time.Second,
 		Check: func(context.Context) health.Result {
-			// A long detail must be clipped rather than make the
-			// heartbeat invalid.
+			// A detail that is not a reason code (here: too long) is
+			// sent as "other" rather than make the heartbeat invalid.
 			return health.Result{State: health.Unavailable, Detail: "stt_unreachable" + strings.Repeat("x", 300)}
 		}})
 	mon.CheckAll(context.Background())
@@ -159,7 +159,7 @@ func TestHeartbeatAcceptedAndCarriesSnapshot(t *testing.T) {
 		t.Fatalf("heartbeat %+v", hb)
 	}
 	if len(hb.Components) != 2 || hb.Components[1].Name != "stt" || len(hb.Components[1].Detail) > deviceapi.MaxDetailText ||
-		!strings.HasPrefix(hb.Components[1].Detail, "stt_unreachable") || !hb.Components[0].Critical {
+		hb.Components[1].Detail != deviceapi.DetailOther || !hb.Components[0].Critical {
 		t.Fatalf("components %+v", hb.Components)
 	}
 	if hb.Outbox.Capacity != 1000 {

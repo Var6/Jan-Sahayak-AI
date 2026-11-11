@@ -47,6 +47,17 @@ Environment=JS_LLM_API_KEY_FILE=%d/llm-api-key
 MemoryHigh=200M
 MemoryMax=256M
 MemorySwapMax=0
+# tesseract (document check) runs inside this cgroup. If the kernel's OOM
+# killer kills it (or any process of the unit), keep the agent running
+# instead of systemd's default OOMPolicy=stop, which would stop and restart
+# the whole agent and end the citizen's session. The agent raises
+# tesseract's oom_score_adj to 1000 so the OOM killer picks it first; a
+# killed tesseract is reported as an OCR failure (503, `ocr` UNAVAILABLE
+# until the next self-test). If the agent itself is killed, Restart=always.
+OOMPolicy=continue
+# No core dumps: the agent holds citizen audio and photos in memory (the
+# agent also sets RLIMIT_CORE=0 for itself and tesseract at runtime).
+LimitCORE=0
 TasksMax=256
 LimitNOFILE=1024
 UMask=0027

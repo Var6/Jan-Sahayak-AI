@@ -12,8 +12,9 @@
 //   - the load replaces the scheme table in one transaction (knowledge.Store);
 //     a bundle with no valid record is refused and the old knowledge stays;
 //   - downloads are bounded (deviceapi.MaxBundleBytes) and time-limited;
-//   - no download starts while a citizen session is open (Busy), so the
-//     facts never change in the middle of a conversation;
+//   - no download starts while a citizen session is open (Busy), and Busy
+//     is asked again just before loading (a session may open during the
+//     download), so the facts never change in the middle of a conversation;
 //   - the kept file is re-verified (signature and rollback) before reuse
 //     (RestoreFromDisk, e.g. after the database was rebuilt from a backup).
 //
@@ -135,6 +136,12 @@ type Worker struct {
 	// the loaded version, checks ask for the full bundle (no ?since) so the
 	// file is rewritten.
 	cachedVersion string
+	// dbVersion is the bundle version last seen in the local database
+	// (read at every check and restore, updated on load). NotifyLatest
+	// compares against it, so a heartbeat announcing the version already
+	// held never triggers a check — also after a restart, when nothing was
+	// loaded by this process.
+	dbVersion string
 }
 
 // New creates a worker.
@@ -186,7 +193,7 @@ func (w *Worker) NotifyLatest(version string) {
 		return
 	}
 	w.mu.Lock()
-	skip := version == w.status.LastLoadedVersion || version == w.status.LastRefusedVersion ||
+	skip := version == w.dbVersion || version == w.status.LastLoadedVersion || version == w.status.LastRefusedVersion ||
 		(!w.lastNotify.IsZero() && w.now().Sub(w.lastNotify) < minNotifyGap)
 	if !skip {
 		w.lastNotify = w.now()
@@ -269,6 +276,7 @@ func (w *Worker) CheckOnce(ctx context.Context) (Result, error) {
 	if err != nil {
 		return Result{}, w.fail(ReasonInternal, "", err)
 	}
+	w.setDBVersion(cur)
 	u, err := url.Parse(w.cfg.BaseURL + deviceapi.KnowledgeBundlePath)
 	if err != nil {
 		return Result{}, w.fail(ReasonInternal, "", err)
@@ -327,10 +335,16 @@ func (w *Worker) CheckOnce(ctx context.Context) (Result, error) {
 			return Result{}, w.fail(ReasonChecksum, "", errors.New("bundlesync: body does not match X-JS-Bundle-SHA256"))
 		}
 	}
+	// A citizen session may have opened during the download: postpone (the
+	// next attempt downloads again; bundles are small and this is rare).
+	if w.cfg.Busy != nil && w.cfg.Busy() {
+		return Result{}, ErrBusy
+	}
 	rep, err := w.load(ctx, body)
 	if err != nil {
 		return Result{}, err
 	}
+	w.setDBVersion(rep.BundleVersion)
 	if rep.BundleVersion == cur {
 		if cacheStale {
 			w.persist(body, cur)
@@ -410,6 +424,7 @@ func (w *Worker) RestoreFromDisk(ctx context.Context) (knowledge.Report, bool, e
 	}
 	w.mu.Lock()
 	w.cachedVersion = rep.BundleVersion
+	w.dbVersion = rep.BundleVersion
 	w.mu.Unlock()
 	if rep.BundleVersion == cur {
 		return rep, false, nil
@@ -419,6 +434,12 @@ func (w *Worker) RestoreFromDisk(ctx context.Context) (knowledge.Report, bool, e
 	w.status.LastLoadedAt = w.now()
 	w.mu.Unlock()
 	return rep, true, nil
+}
+
+func (w *Worker) setDBVersion(v string) {
+	w.mu.Lock()
+	w.dbVersion = v
+	w.mu.Unlock()
 }
 
 func (w *Worker) succeed(result string) {

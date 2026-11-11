@@ -2,7 +2,7 @@
 
 Phases follow the master brief. Status is updated in `PROGRESS.md`.
 
-| Phase | Scope | Status (2026-11-09) |
+| Phase | Scope | Status (2026-11-09; rows 10–12 updated 2026-11-11 — `PROGRESS.md` is current) |
 |---|---|---|
 | 0 Audit | machine, tools, workspace, architecture & decision docs | done |
 | 1 Foundation | Go module, pnpm workspace, toolchain (cmake, llama.cpp, whisper.cpp, PostgreSQL 17, sqlc, goose), local Postgres, lint/test setup | done (frontend lint/test in progress with kiosk) |
@@ -14,8 +14,8 @@ Phases follow the master brief. Status is updated in `PROGRESS.md`.
 | 7 Voice integration | real STT/TTS in the turn loop; Hindi/Hinglish tests | in progress (speech worker) |
 | 8 Central backend | Go + PostgreSQL: devices, ingest, admin, schemes, analytics | in progress |
 | 9 Offline sync | device side done & tested; central ingest in progress; e2e | in progress |
-| 10 Admin dashboard | Next.js static export | next |
-| 11 Document assistance | consent, capture, Tesseract OCR (hin+eng), confirmation, cleanup | later |
-| 12 Reliability & endurance | soaks, leak tests, fault injection, upgrade/rollback | partially (unit-level done) |
+| 10 Admin dashboard | Next.js static export | done |
+| 11 Document assistance | consent, capture, Tesseract OCR (`eng+hin`), confirmation, cleanup | done (Phase 11; Pi checks open) |
+| 12 Reliability & endurance | soaks, leak tests, fault injection, upgrade/rollback | in progress (fault soak and upgrade/rollback test run on the Mac; 8 h soak on mains power still to do) |
 | 13 Raspberry Pi | buy kit (approval), image, cross-compile, benchmarks, 72 h soak | blocked on hardware approval |
 | 14 Pilot | one authorised location, consent & privacy procedures, legal review | later |

@@ -174,6 +174,10 @@ type Server struct {
 
 	// counters for GET /health
 	turns, sttErrors, ttsErrors, recordErrors atomic.Int64
+	// outboxRefused counts events not stored because the outbox was full;
+	// it also rate-limits that log line (a busy kiosk would otherwise write
+	// one ERROR per turn and push useful history out of journald).
+	outboxRefused atomic.Int64
 }
 
 // convo is the per-session conversation memory. It lives only in RAM and

@@ -88,6 +88,12 @@ func run(args []string) int {
 
 	log := newLogger(cfg.LogLevel)
 	slog.SetDefault(log)
+	// No core dumps: this process holds citizen audio and photos in
+	// memory. Children (tesseract) inherit the limit; the systemd unit
+	// also sets LimitCORE=0.
+	if err := syscall.Setrlimit(syscall.RLIMIT_CORE, &syscall.Rlimit{Cur: 0, Max: 0}); err != nil {
+		log.Warn("could not disable core dumps", "err", err)
+	}
 	if cfg.MemoryLimitMB > 0 && os.Getenv("GOMEMLIMIT") == "" {
 		debug.SetMemoryLimit(int64(cfg.MemoryLimitMB) << 20)
 	}
@@ -346,6 +352,20 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (*agent, er
 		a.button = g
 	default:
 		a.button = hal.Sim{}
+	}
+
+	// Sessions a killed predecessor left open get their end recorded now,
+	// before any new session can start (Phase 12 fault soak finding).
+	{
+		octx, ocancel := context.WithTimeout(ctx, 10*time.Second)
+		n, err := api.CloseOrphanedSessions(octx, st.DB, a.ob)
+		ocancel()
+		switch {
+		case err != nil:
+			log.Error("could not record the end of sessions left open by the previous run; retrying at next start", "err", err, "closed", n)
+		case n > 0:
+			log.Warn("recorded the end of sessions left open by the previous run", "count", n, "end_reason", "error")
+		}
 	}
 
 	// Document assistance (Phase 11, documents.go): tesseract subprocess.

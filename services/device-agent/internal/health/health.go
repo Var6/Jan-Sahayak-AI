@@ -130,7 +130,7 @@ func (m *Monitor) Register(c Component) {
 	}
 	m.entries[c.Name] = &entry{
 		c:      c,
-		status: Status{Name: c.Name, Critical: c.Critical, State: Recovering, Detail: "not yet checked"},
+		status: Status{Name: c.Name, Critical: c.Critical, State: Recovering, Detail: "not_yet_checked"},
 	}
 }
 
@@ -204,7 +204,7 @@ func (m *Monitor) runOne(ctx context.Context, name string) {
 		return // shutting down; don't record a spurious failure
 	}
 	if cctx.Err() == context.DeadlineExceeded && r.State == "" {
-		r = Result{State: Unavailable, Detail: "check timed out"}
+		r = Result{State: Unavailable, Detail: "check_timed_out"}
 	}
 	m.mu.Lock()
 	e.nextRun = m.now().Add(c.Interval)

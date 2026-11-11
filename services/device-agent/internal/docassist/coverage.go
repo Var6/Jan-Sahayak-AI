@@ -15,16 +15,22 @@ import (
 //
 // Keywords are squashed like the classifier's. A requirement that names a
 // bank account is about the account even when it also says "Aadhaar"
-// ("Bank account seeded with Aadhaar"), so bank rules are exclusive.
+// ("Bank account seeded with Aadhaar"), so a bank match drops Aadhaar.
+// A bare "bank" (as in "6 months' bank statement") is only one
+// alternative among other named papers; when another document type is
+// also named, it does not make a passbook count (a passbook is neither
+// income proof nor a bank statement). Passbook-specific words
+// (passbook, account number, IFSC) always count.
 type reqRule struct {
-	t         DocType
-	kws       []string
-	exclusive bool
+	t   DocType
+	kws []string
+	// weak keywords count only when no other (non-Aadhaar) type matches.
+	weak []string
 }
 
 var reqRules = func() []reqRule {
 	rs := []reqRule{
-		{t: BankPassbook, exclusive: true, kws: []string{"bank", "बैंक", "passbook", "पासबुक", "accountnumber", "खातानंबर", "खातासंख्या", "ifsc"}},
+		{t: BankPassbook, kws: []string{"passbook", "पासबुक", "bankaccount", "बैंकखाता", "accountnumber", "खातानंबर", "खातासंख्या", "ifsc"}, weak: []string{"bank", "बैंक"}},
 		{t: Aadhaar, kws: []string{"aadhaar", "aadhar", "आधार"}},
 		{t: VoterID, kws: []string{"voterid", "वोटरआईडी", "वोटरपहचानपत्र", "मतदातापहचानपत्र", "electorsphotoidentitycard"}},
 		{t: PAN, kws: []string{"pancard", "पैनकार्ड", "permanentaccountnumber"}},
@@ -40,6 +46,9 @@ var reqRules = func() []reqRule {
 		for j, k := range rs[i].kws {
 			rs[i].kws[j] = squash(k)
 		}
+		for j, k := range rs[i].weak {
+			rs[i].weak[j] = squash(k)
+		}
 	}
 	return rs
 }()
@@ -48,17 +57,38 @@ var reqRules = func() []reqRule {
 // (empty: a camera cannot check it — a form, a photograph, an affidavit).
 func TypesFor(doc scheme.Doc) []DocType {
 	sq := squash(doc.Name.Hi + " " + doc.Name.En)
-	var out []DocType
-	for _, r := range reqRules {
-		for _, k := range r.kws {
+	has := func(kws []string) bool {
+		for _, k := range kws {
 			if strings.Contains(sq, k) {
-				if r.exclusive {
-					return []DocType{r.t}
-				}
-				out = append(out, r.t)
-				break
+				return true
 			}
 		}
+		return false
+	}
+	var strong, weak []DocType
+	for _, r := range reqRules {
+		switch {
+		case has(r.kws):
+			strong = append(strong, r.t)
+		case has(r.weak):
+			weak = append(weak, r.t)
+		}
+	}
+	bank := false
+	for _, t := range append(append([]DocType{}, strong...), weak...) {
+		if t == BankPassbook {
+			bank = true
+		}
+	}
+	var out []DocType
+	for _, t := range strong {
+		if bank && t == Aadhaar {
+			continue // "bank account seeded with Aadhaar"
+		}
+		out = append(out, t)
+	}
+	if len(out) == 0 {
+		out = weak
 	}
 	return out
 }
